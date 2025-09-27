@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Header from './components/Header/Header';
@@ -19,29 +19,23 @@ const theme = createTheme({
 });
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'form':
-        return <ProblemForm />;
-      case 'list':
-        return <ProblemList />;
-      case 'dashboard':
-      default:
-        return <Dashboard />;
-    }
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="App">
-        <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
-        <main>
-          {renderPage()}
-        </main>
-      </div>
+      <Router> 
+        <div className="App">
+          <Header />
+          <main>
+            <Routes>  
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/report" element={<ProblemForm />} />
+              <Route path="/problems" element={<ProblemList />} />
+              <Route path="*" element={<Navigate to="/" replace />} /> {/* Перенаправление на главную если маршрут не найден */}
+            </Routes>
+          </main>
+        </div>
+      </Router>
     </ThemeProvider>
   );
 }
