@@ -5,6 +5,7 @@ import Header from './components/Header/Header';
 import ProblemForm from './components/ProblemForm/ProblemForm';
 import ProblemList from './components/ProblemList/ProblemList';
 import Dashboard from './components/Dashboard/Dashboard';
+import Profile from './components/Profile/Profile'; 
 import './App.css';
 
 const theme = createTheme({
@@ -31,6 +32,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/report" element={<ProblemForm />} />
               <Route path="/problems" element={<ProblemList />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<Navigate to="/" replace />} /> {/* Перенаправление на главную если маршрут не найден */}
             </Routes>
           </main>

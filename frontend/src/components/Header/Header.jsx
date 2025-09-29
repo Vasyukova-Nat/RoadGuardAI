@@ -4,6 +4,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import RoadIcon from '@mui/icons-material/DriveEta';
+import PersonIcon from '@mui/icons-material/Person';
 
 function Header() {
   const location = useLocation();  // Хук для получения текущего пути
@@ -44,6 +45,15 @@ function Header() {
           variant={isActive('/problems') ? 'outlined' : 'text'}
         >
           Список проблем
+        </Button>
+
+         <Button 
+          color="inherit" 
+          onClick={() => navigate('/profile')}
+          variant={isActive('/profile') ? 'outlined' : 'text'}
+          startIcon={<PersonIcon />} 
+        >
+          Кабинет
         </Button>
       </Toolbar>
     </AppBar>
