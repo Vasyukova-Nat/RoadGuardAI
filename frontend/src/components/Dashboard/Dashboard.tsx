@@ -18,7 +18,7 @@ function Dashboard() {
       
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {stats.map((stat, index) => (
-          <Grid item xs={12} sm={4} key={index}>
+          <Grid key={index} size={{ xs: 12, sm: 4 }}>
             <Card>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Box sx={{ color: stat.color, fontSize: 40, mb: 1 }}>

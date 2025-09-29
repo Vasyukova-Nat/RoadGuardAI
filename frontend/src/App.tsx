@@ -19,27 +19,27 @@ const theme = createTheme({
   },
 });
 
-function App() {
+const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router> 
+      <Router>
         <div className="App">
           <Header />
           <main>
-            <Routes>  
+            <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/report" element={<ProblemForm />} />
               <Route path="/problems" element={<ProblemList />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="*" element={<Navigate to="/" replace />} /> {/* Перенаправление на главную если маршрут не найден */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
         </div>
       </Router>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

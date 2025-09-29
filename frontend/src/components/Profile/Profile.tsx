@@ -4,8 +4,6 @@ import {
   Paper,
   Typography,
   Avatar,
-  Card,
-  CardContent,
   Grid,
   List,
   ListItem,
@@ -24,7 +22,6 @@ import {
 } from '@mui/icons-material';
 
 function Profile() {
-  // Демо-данные пользователя
   const userData = {
     name: 'Иван Петров',
     email: 'ivan.petrov@company.ru',
@@ -34,14 +31,12 @@ function Profile() {
     registrationDate: '2023-05-15'
   };
 
-  // Статистика пользователя
   const userStats = [
     { label: 'Отправлено проблем', value: 47, icon: <WarningIcon />, color: '#1976d2' },
     { label: 'Проблем в работе', value: 8, icon: <BuildIcon />, color: '#ed6c02' },
     { label: 'Решено проблем', value: 32, icon: <CheckCircleIcon />, color: '#2e7d32' }
   ];
 
-  // Последние активности
   const recentActivities = [
     { action: 'Добавлена новая проблема', date: '2024-01-16 14:30', address: 'ул. Ленина, 15' },
     { action: 'Проблема взята в работу', date: '2024-01-15 11:20', address: 'пр. Мира, 28' },
@@ -57,7 +52,7 @@ function Profile() {
 
       <Grid container spacing={3}>
         {/* Левая колонка - информация о пользователе */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
               <Avatar
@@ -106,7 +101,6 @@ function Profile() {
             </List>
           </Paper>
 
-          {/* Статистика */}
           <Paper elevation={3} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Моя статистика
@@ -129,8 +123,7 @@ function Profile() {
           </Paper>
         </Grid>
 
-        {/* Правая колонка - последние активности */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, sm: 8 }}>
           <Paper elevation={3} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Последние активности
@@ -166,7 +159,6 @@ function Profile() {
             </List>
           </Paper>
 
-          {/* Дополнительная информация */}
           <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
             <Typography variant="h6" gutterBottom>
               О системе

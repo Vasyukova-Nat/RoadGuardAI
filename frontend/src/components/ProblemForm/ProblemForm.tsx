@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import {
   Box,
   Paper,
@@ -9,25 +9,34 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Alert
+  Alert,
+  SelectChangeEvent
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { ProblemType } from '../../types';
 
-function ProblemForm() {
-  const [photo, setPhoto] = useState(null);
-  const [problemType, setProblemType] = useState('pothole');
-  const [address, setAddress] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+const ProblemForm: React.FC = () => {
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [problemType, setProblemType] = useState<ProblemType>('pothole');
+  const [address, setAddress] = useState<string>('');
+  const [submitted, setSubmitted] = useState<boolean>(false);
 
-  const handlePhotoUpload = (event) => {
-    const file = event.target.files[0];
+  const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
     if (file) {
       setPhoto(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmit = () => {
-    // Здесь будет отправка данных на бэкенд
+  const handleProblemTypeChange = (event: SelectChangeEvent): void => {
+    setProblemType(event.target.value as ProblemType);
+  };
+
+  const handleAddressChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    setAddress(event.target.value);
+  };
+
+  const handleSubmit = (): void => {
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
@@ -88,7 +97,7 @@ function ProblemForm() {
           <Select
             value={problemType}
             label="Тип проблемы"
-            onChange={(e) => setProblemType(e.target.value)}
+            onChange={handleProblemTypeChange}
           >
             <MenuItem value="pothole">🚧 Яма</MenuItem>
             <MenuItem value="crack">📏 Трещина</MenuItem>
@@ -101,7 +110,7 @@ function ProblemForm() {
           fullWidth
           label="Адрес или описание места"
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onChange={handleAddressChange}
           sx={{ mb: 2 }}
           placeholder="Например: ул. Ленина, 15, перед пешеходным переходом"
         />

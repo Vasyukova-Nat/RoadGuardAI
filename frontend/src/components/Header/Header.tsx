@@ -6,11 +6,11 @@ import Button from '@mui/material/Button';
 import RoadIcon from '@mui/icons-material/DriveEta';
 import PersonIcon from '@mui/icons-material/Person';
 
-function Header() {
+const Header: React.FC = () => {
   const location = useLocation();  // Хук для получения текущего пути
   const navigate = useNavigate();  // Хук для навигации
 
-  const isActive = (path) => location.pathname === path; // проверка активной страницы
+  const isActive = (path: string): boolean => location.pathname === path; // проверка активной страницы
 
   return (
     <AppBar position="static">
@@ -53,7 +53,7 @@ function Header() {
           variant={isActive('/profile') ? 'outlined' : 'text'}
           startIcon={<PersonIcon />} 
         >
-          Кабинет
+          Личный кабинет
         </Button>
       </Toolbar>
     </AppBar>

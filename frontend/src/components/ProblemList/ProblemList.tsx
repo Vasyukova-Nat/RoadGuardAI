@@ -11,7 +11,6 @@ import {
   Box
 } from '@mui/material';
 
-// Демо-данные
 const mockProblems = [
   { id: 1, address: 'ул. Ленина, 15', type: 'Яма', status: 'новая', date: '2024-01-15' },
   { id: 2, address: 'пр. Мира, 28', type: 'Трещина', status: 'в работе', date: '2024-01-14' },
@@ -20,7 +19,7 @@ const mockProblems = [
 ];
 
 function ProblemList() {
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'новая': return 'error';      
       case 'в работе': return 'warning'; 
