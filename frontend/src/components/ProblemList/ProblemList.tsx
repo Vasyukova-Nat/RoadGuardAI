@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   Paper,
   Typography,
@@ -7,26 +8,77 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  Box
+  Box,
+  Button,
+  CircularProgress,
+  Alert
 } from '@mui/material';
-
-const mockProblems = [
-  { id: 1, address: 'ул. Ленина, 15', type: 'Яма', status: 'новая', date: '2024-01-15' },
-  { id: 2, address: 'пр. Мира, 28', type: 'Трещина', status: 'в работе', date: '2024-01-14' },
-  { id: 3, address: 'ул. Центральная, 5', type: 'Яма', status: 'исправлено', date: '2024-01-10' },
-  { id: 4, address: 'ш. Московское, 45 км', type: 'Отсутствует люк', status: 'новая', date: '2024-01-16' }
-];
+import { problemsAPI, Problem } from '../../services/api';
 
 function ProblemList() {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'новая': return 'error';      
-      case 'в работе': return 'warning'; 
-      case 'исправлено': return 'success'; 
-      default: return 'default';
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadProblems();
+  }, []);
+
+  const loadProblems = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      const response = await problemsAPI.getProblems();
+      setProblems(response.data);
+      setError(null);
+    } catch (error) {
+      console.error('Error loading problems:', error);
+      setError('Ошибка при загрузке проблем');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleDelete = async (id: number): Promise<void> => {
+    if (!window.confirm('Удалить эту проблему?')) return;
+    
+    try {
+      await problemsAPI.deleteProblem(id);
+      setProblems(problems.filter(p => p.id !== id));
+    } catch (error) {
+      console.error('Error deleting problem:', error);
+      alert('Ошибка при удалении проблемы');
+    }
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <CircularProgress />
+        <Typography sx={{ mt: 2 }}>Загрузка проблем...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={loadProblems}>
+          Попробовать снова
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -41,25 +93,27 @@ function ProblemList() {
               <TableRow>
                 <TableCell><strong>ID</strong></TableCell>
                 <TableCell><strong>Адрес</strong></TableCell>
-                <TableCell><strong>Тип проблемы</strong></TableCell>
-                <TableCell><strong>Статус</strong></TableCell>
-                <TableCell><strong>Дата</strong></TableCell>
+                <TableCell><strong>Описание</strong></TableCell>
+                <TableCell><strong>Дата создания</strong></TableCell>
+                <TableCell><strong>Действия</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockProblems.map((problem) => (
+              {problems.map((problem) => (
                 <TableRow key={problem.id}>
                   <TableCell>#{problem.id}</TableCell>
                   <TableCell>{problem.address}</TableCell>
-                  <TableCell>{problem.type}</TableCell>
+                  <TableCell>{problem.description || '-'}</TableCell>
+                  <TableCell>{formatDate(problem.created_at)}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={problem.status} 
-                      color={getStatusColor(problem.status)}
+                    <Button 
+                      color="error" 
                       size="small"
-                    />
+                      onClick={() => handleDelete(problem.id)}
+                    >
+                      Удалить
+                    </Button>
                   </TableCell>
-                  <TableCell>{problem.date}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -69,7 +123,7 @@ function ProblemList() {
 
       <Box sx={{ mt: 2, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Всего проблем: {mockProblems.length}
+          Всего проблем: {problems.length}
         </Typography>
       </Box>
     </Box>

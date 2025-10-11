@@ -6,12 +6,21 @@ from . import models
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="RoadGuard AI API",
     description="API для системы мониторинга дорожного покрытия",
     version="1.0.0",
     docs_url="/docs"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],  # Разрешаем все HTTP методы
+    allow_headers=["*"],  # Разрешаем все заголовки
 )
 
 class ProblemCreate(BaseModel):

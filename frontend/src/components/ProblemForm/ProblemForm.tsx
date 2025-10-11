@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import {
   Box,
   Paper,
@@ -14,12 +14,15 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { ProblemType } from '../../types';
+import { problemsAPI, CreateProblemRequest } from '../../services/api';
 
 const ProblemForm: React.FC = () => {
   const [photo, setPhoto] = useState<string | null>(null);
   const [problemType, setProblemType] = useState<ProblemType>('pothole');
   const [address, setAddress] = useState<string>('');
-  const [submitted, setSubmitted] = useState<boolean>(false);
+  const [description, setDescription] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
@@ -36,21 +39,44 @@ const ProblemForm: React.FC = () => {
     setAddress(event.target.value);
   };
 
-  const handleSubmit = (): void => {
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
+  const handleDescriptionChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    setDescription(event.target.value);
+  };
+
+  const handleSubmit = async (): Promise<void> => {
+    if (!address.trim()) return;
+    
+    setLoading(true);
+    try {
+      const problemData: CreateProblemRequest = {
+        address: address.trim(),
+        description: description.trim() || null
+      };
+
+      await problemsAPI.createProblem(problemData);
+      
+      setMessage({ text: '✅ Проблема успешно отправлена!', type: 'success' });
+      
+      // Очищаем форму
       setPhoto(null);
       setProblemType('pothole');
       setAddress('');
-    }, 3000);
+      setDescription('');
+      
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.error('Error creating problem:', error);
+      setMessage({ text: '❌ Ошибка при отправке проблемы', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Box sx={{ p: 3, maxWidth: 600, margin: '0 auto' }}>
-      {submitted && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Проблема успешно отправлена на модерацию!
+      {message && (
+        <Alert severity={message.type} sx={{ mb: 2 }}>
+          {message.text}
         </Alert>
       )}
       
@@ -115,14 +141,25 @@ const ProblemForm: React.FC = () => {
           placeholder="Например: ул. Ленина, 15, перед пешеходным переходом"
         />
 
+        <TextField
+          fullWidth
+          label="Описание проблемы"
+          value={description}
+          onChange={handleDescriptionChange}
+          multiline
+          rows={3}
+          sx={{ mb: 2 }}
+          placeholder="Опишите проблему подробнее..."
+        />
+
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={!photo || !address}
+          disabled={!address.trim() || loading}
           fullWidth
           size="large"
         >
-          Отправить
+          {loading ? 'Отправка...' : 'Отправить проблему'}
         </Button>
       </Paper>
     </Box>
