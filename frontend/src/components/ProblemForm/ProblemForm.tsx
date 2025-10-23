@@ -55,7 +55,7 @@ const ProblemForm: React.FC = () => {
 
       await problemsAPI.createProblem(problemData);
       
-      setMessage({ text: '✅ Проблема успешно отправлена!', type: 'success' });
+      setMessage({ text: 'Проблема успешно отправлена!', type: 'success' });
       
       // Очищаем форму
       setPhoto(null);
@@ -63,10 +63,13 @@ const ProblemForm: React.FC = () => {
       setAddress('');
       setDescription('');
       
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating problem:', error);
-      setMessage({ text: '❌ Ошибка при отправке проблемы', type: 'error' });
+      if (error.response?.status === 401) {
+        setMessage({ text: 'Вы не авторизованы. Войдите в систему.', type: 'error' });
+      } else {
+        setMessage({ text: 'Ошибка при отправке проблемы', type: 'error' });
+      }
     } finally {
       setLoading(false);
     }
@@ -125,20 +128,21 @@ const ProblemForm: React.FC = () => {
             label="Тип проблемы"
             onChange={handleProblemTypeChange}
           >
-            <MenuItem value="pothole">🚧 Яма</MenuItem>
-            <MenuItem value="crack">📏 Трещина</MenuItem>
-            <MenuItem value="manhole">⚠️ Отсутствует люк</MenuItem>
-            <MenuItem value="other">❓ Другое</MenuItem>
+            <MenuItem value="pothole">Яма</MenuItem>
+            <MenuItem value="crack">Трещина</MenuItem>
+            <MenuItem value="manhole">Отсутствует люк</MenuItem>
+            <MenuItem value="other">Другое</MenuItem>
           </Select>
         </FormControl>
 
         <TextField
           fullWidth
-          label="Адрес или описание места"
+          label="Адрес или описание места" 
           value={address}
           onChange={handleAddressChange}
           sx={{ mb: 2 }}
           placeholder="Например: ул. Ленина, 15, перед пешеходным переходом"
+          required
         />
 
         <TextField
@@ -164,6 +168,6 @@ const ProblemForm: React.FC = () => {
       </Paper>
     </Box>
   );
-}
+};
 
 export default ProblemForm;

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -5,8 +6,15 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import RoadIcon from '@mui/icons-material/DriveEta';
 import PersonIcon from '@mui/icons-material/Person';
+import { User } from '../../services/api';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  currentUser: User | null;
+  onLogout: () => void;
+  onLogin: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
   const location = useLocation();  // Хук для получения текущего пути
   const navigate = useNavigate();  // Хук для навигации
 
@@ -16,48 +24,68 @@ const Header: React.FC = () => {
     <AppBar position="static">
       <Toolbar>
         <RoadIcon sx={{ mr: 2 }} />
-        
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }}
-        onClick={() => navigate('/')}  // Клик по лого ведет на /
+        <Typography 
+          variant="h6" 
+          component="div" 
+          sx={{ flexGrow: 1, cursor: 'pointer' }}
+          onClick={() => navigate('/')} // Клик по лого ведет на /
         >
           RoadGuard AI
         </Typography>
-
-        <Button 
-          color="inherit" 
-          onClick={() => navigate('/')}
-          variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
-        >
-          Главная
-        </Button>
         
-        <Button 
-          color="inherit" 
-          onClick={() => navigate('/report')}
-          variant={isActive('/report') ? 'outlined' : 'text'}
-        >
-          Добавить проблему
-        </Button>
-        
-        <Button 
-          color="inherit" 
-          onClick={() => navigate('/problems')}
-          variant={isActive('/problems') ? 'outlined' : 'text'}
-        >
-          Список проблем
-        </Button>
-
-         <Button 
-          color="inherit" 
-          onClick={() => navigate('/profile')}
-          variant={isActive('/profile') ? 'outlined' : 'text'}
-          startIcon={<PersonIcon />} 
-        >
-          Личный кабинет
-        </Button>
+        {currentUser ? (
+          <>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/')}
+              variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
+            >
+              Главная
+            </Button>
+            
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/report')}
+              variant={isActive('/report') ? 'outlined' : 'text'}
+            >
+              Добавить проблему
+            </Button>
+            
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/problems')}
+              variant={isActive('/problems') ? 'outlined' : 'text'}
+            >
+              Список проблем
+            </Button>
+            
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/profile')}
+              variant={isActive('/profile') ? 'outlined' : 'text'}
+              startIcon={<PersonIcon />}
+            >
+              {currentUser.name}
+            </Button>
+            
+            <Button 
+              color="inherit" 
+              onClick={onLogout}
+            >
+              Выйти
+            </Button>
+          </>
+        ) : (
+          <Button 
+            color="inherit" 
+            onClick={onLogin}
+          >
+            Войти
+          </Button>
+        )}
       </Toolbar>
     </AppBar>
   );
-}
+};
 
 export default Header;
