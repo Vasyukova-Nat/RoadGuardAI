@@ -49,7 +49,8 @@ const ProblemForm: React.FC = () => {
     try {
       const problemData: CreateProblemRequest = {
         address: address.trim(),
-        description: description.trim() || null
+        description: description.trim() || null,
+        type: problemType
       };
 
       await problemsAPI.createProblem(problemData);

@@ -40,6 +40,7 @@ export interface Problem {
 export interface CreateProblemRequest {
   address: string;
   description?: string | null;
+  type: ProblemType;
 }
 
 export type UserRole = 'inspector' | 'contractor' | 'admin';

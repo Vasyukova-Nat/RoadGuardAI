@@ -65,6 +65,7 @@ function ProblemList() {
       case 'new': return 'Новая';
       case 'in_progress': return 'В работе';
       case 'resolved': return 'Решена';
+      case 'closed': return 'Закрыта';
       default: return status;
     }
   };

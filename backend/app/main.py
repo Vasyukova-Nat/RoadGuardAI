@@ -34,6 +34,7 @@ app.add_middleware(
 class ProblemCreate(BaseModel):
     address: str
     description: Optional[str] = None
+    type: ProblemType = ProblemType.POTHOLE
 
 class ProblemResponse(BaseModel):
     id: int
@@ -96,6 +97,7 @@ def create_problem(problem: ProblemCreate, current_user: models.User = Depends(g
         db_problem = models.Problem(
             address=problem.address,
             description=problem.description,
+            type=problem.type,
             reporter_id=current_user.id
         )
 
