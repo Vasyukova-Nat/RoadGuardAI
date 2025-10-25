@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ProblemType, ProblemStatus } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -26,8 +27,10 @@ api.interceptors.response.use(
 
 export interface Problem {
   id: number;
+  type: ProblemType;
   address: string;
   description: string | null;
+  status: ProblemStatus;
   created_at: string;
 }
 

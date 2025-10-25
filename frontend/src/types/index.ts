@@ -1,4 +1,3 @@
-// Типы для проблем
 export interface Problem {
   id: number;
   address: string;
@@ -10,9 +9,8 @@ export interface Problem {
 }
 
 export type ProblemType = 'pothole' | 'crack' | 'manhole' | 'other';
-export type ProblemStatus = 'new' | 'in_progress' | 'resolved';
+export type ProblemStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
 
-// Типы для пользователя
 export interface User {
   id: number;
   name: string;

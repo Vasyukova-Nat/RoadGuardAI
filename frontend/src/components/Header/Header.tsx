@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -7,6 +7,7 @@ import Button from '@mui/material/Button';
 import RoadIcon from '@mui/icons-material/DriveEta';
 import PersonIcon from '@mui/icons-material/Person';
 import { User } from '../../services/api';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
 
 interface HeaderProps {
   currentUser: User | null;
@@ -17,10 +18,25 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
   const location = useLocation();  // Хук для получения текущего пути
   const navigate = useNavigate();  // Хук для навигации
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false); 
 
   const isActive = (path: string): boolean => location.pathname === path; // проверка активной страницы
 
+    const handleLogoutClick = () => {
+    setLogoutDialogOpen(true); 
+  };
+
+  const handleConfirmLogout = () => {
+    setLogoutDialogOpen(false);
+    onLogout(); 
+  };
+
+  const handleCancelLogout = () => {
+    setLogoutDialogOpen(false); 
+  };
+
   return (
+    <>
     <AppBar position="static">
       <Toolbar>
         <RoadIcon sx={{ mr: 2 }} />
@@ -70,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
             
             <Button 
               color="inherit" 
-              onClick={onLogout}
+              onClick={handleLogoutClick}
             >
               Выйти
             </Button>
@@ -85,6 +101,30 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
         )}
       </Toolbar>
     </AppBar>
+
+    <Dialog
+        open={logoutDialogOpen}
+        onClose={handleCancelLogout}
+        aria-labelledby="logout-dialog-title"
+      >
+        <DialogTitle id="logout-dialog-title">
+          Подтверждение выхода
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            Вы действительно хотите выйти из системы?
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelLogout} color="primary">
+            Отмена
+          </Button>
+          <Button onClick={handleConfirmLogout} color="error" variant="contained" autoFocus>
+            Выйти
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

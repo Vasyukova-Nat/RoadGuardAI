@@ -1,12 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from .database import get_db, engine
-from . import models
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime, timedelta
 from fastapi.middleware.cors import CORSMiddleware
+from . import models
+from .models import ProblemStatus, ProblemType
+from .database import get_db, engine
 from .auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 
 try:
@@ -36,8 +37,10 @@ class ProblemCreate(BaseModel):
 
 class ProblemResponse(BaseModel):
     id: int
+    type: ProblemType
     address: str
     description: Optional[str] = None
+    status: ProblemStatus
     created_at: datetime
 
     class Config:
@@ -109,7 +112,19 @@ def create_problem(problem: ProblemCreate, current_user: models.User = Depends(g
         import traceback
         print(f"Traceback: {traceback.format_exc()}")  
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
- 
+
+@app.put("/problems/{problem_id}/status")  
+def update_problem_status(problem_id: int, status: ProblemStatus,db: Session = Depends(get_db)):
+    """Обновить статус проблемы"""
+    problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    problem.status = status
+    db.commit()
+    db.refresh(problem)
+    return problem
+
 @app.get("/problems", response_model=list[ProblemResponse])
 def get_problems(db: Session = Depends(get_db)):
     """Получить список всех проблем"""

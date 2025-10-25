@@ -8,12 +8,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Chip,
   Box,
   Button,
   CircularProgress,
   Alert
 } from '@mui/material';
 import { problemsAPI, Problem } from '../../services/api';
+import { ProblemType, ProblemStatus } from '../../types'; 
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -47,6 +49,34 @@ function ProblemList() {
     } catch (error) {
       console.error('Error deleting problem:', error);
       alert('Ошибка при удалении проблемы');
+    }
+  };
+
+  const getStatusColor = (status: ProblemStatus) => { 
+    switch (status) {
+      case 'new': return 'error';      
+      case 'in_progress': return 'warning'; 
+      case 'resolved': return 'success'; 
+      default: return 'default';
+    }
+  };
+
+  const getStatusText = (status: ProblemStatus) => { 
+    switch (status) {
+      case 'new': return 'Новая';
+      case 'in_progress': return 'В работе';
+      case 'resolved': return 'Решена';
+      default: return status;
+    }
+  };
+
+    const getTypeText = (type: ProblemType) => {
+      switch (type) {
+        case 'pothole': return 'Яма';
+        case 'crack': return 'Трещина';
+        case 'manhole': return 'Люк';
+        case 'other': return 'Другое';
+        default: return type;
     }
   };
 
@@ -92,18 +122,28 @@ function ProblemList() {
             <TableHead>
               <TableRow>
                 <TableCell><strong>ID</strong></TableCell>
+                <TableCell><strong>Тип</strong></TableCell>
                 <TableCell><strong>Адрес</strong></TableCell>
                 <TableCell><strong>Описание</strong></TableCell>
+                <TableCell><strong>Статус</strong></TableCell>
                 <TableCell><strong>Дата создания</strong></TableCell>
-                <TableCell><strong>Действия</strong></TableCell>
+                <TableCell><strong>Действие</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {problems.map((problem) => (
                 <TableRow key={problem.id}>
                   <TableCell>#{problem.id}</TableCell>
+                  <TableCell>{getTypeText(problem.type)}</TableCell>
                   <TableCell>{problem.address}</TableCell>
                   <TableCell>{problem.description || '-'}</TableCell>
+                  <TableCell> 
+                    <Chip 
+                      label={getStatusText(problem.status)}  
+                      color={getStatusColor(problem.status)}
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>{formatDate(problem.created_at)}</TableCell>
                   <TableCell>
                     <Button 
