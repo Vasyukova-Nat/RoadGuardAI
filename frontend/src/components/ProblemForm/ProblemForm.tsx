@@ -13,8 +13,7 @@ import {
   SelectChangeEvent
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { ProblemType } from '../../types';
-import { problemsAPI, CreateProblemRequest } from '../../services/api';
+import { problemsAPI, ProblemType, CreateProblemRequest } from '../../services/types';
 
 const ProblemForm: React.FC = () => {
   const [photo, setPhoto] = useState<string | null>(null);

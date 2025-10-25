@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { ProblemType, ProblemStatus } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -25,6 +24,10 @@ api.interceptors.response.use(
   }
 );
 
+export type ProblemType = 'pothole' | 'crack' | 'manhole' | 'other';
+export type ProblemStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
+
+
 export interface Problem {
   id: number;
   type: ProblemType;
@@ -39,11 +42,14 @@ export interface CreateProblemRequest {
   description?: string | null;
 }
 
+export type UserRole = 'inspector' | 'contractor' | 'admin';
+
 export interface User {
   id: number;
-  email: string;
   name: string;
-  role: string;
+  email: string;
+  role: UserRole;
+  organization: string;
   is_active: boolean;
   created_at: string;
 }
@@ -62,6 +68,18 @@ export interface RegisterRequest {
 export interface AuthResponse {
   access_token: string;
   token_type: string;
+}
+
+export interface UserStats {
+  reported: number;
+  inProgress: number;
+  resolved: number;
+}
+
+export interface Activity {
+  action: string;
+  date: string;
+  address: string;
 }
 
 export const problemsAPI = {

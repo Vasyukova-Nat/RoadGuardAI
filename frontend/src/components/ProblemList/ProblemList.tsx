@@ -14,8 +14,7 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
-import { problemsAPI, Problem } from '../../services/api';
-import { ProblemType, ProblemStatus } from '../../types'; 
+import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);

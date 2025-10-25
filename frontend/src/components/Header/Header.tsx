@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import RoadIcon from '@mui/icons-material/DriveEta';
 import PersonIcon from '@mui/icons-material/Person';
-import { User } from '../../services/api';
+import { User } from '../../services/types';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
 
 interface HeaderProps {

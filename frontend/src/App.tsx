@@ -7,7 +7,7 @@ import ProblemList from './components/ProblemList/ProblemList';
 import Dashboard from './components/Dashboard/Dashboard';
 import Profile from './components/Profile/Profile'; 
 import { useState, useEffect } from 'react';
-import { authAPI, User } from './services/api';
+import { authAPI, User } from './services/types';
 import LoginForm from './components/LoginForm/LoginForm';
 import RegisterForm from './components/RegisterForm/RegisterForm';
 import './App.css';

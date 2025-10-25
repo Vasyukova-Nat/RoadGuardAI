@@ -20,7 +20,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Build as BuildIcon
 } from '@mui/icons-material';
-import { User } from '../../services/api';
+import { User } from '../../services/types';
 
 interface ProfileProps {
   currentUser: User | null;
@@ -75,7 +75,6 @@ function Profile({ currentUser }: ProfileProps) {
                 {currentUser.name}
               </Typography>
               <Chip 
-                // label={userData.role} 
                 label={currentUser.role === 'inspector' ? 'Дорожный инспектор' : currentUser.role} 
                 color="primary" 
                 variant="outlined"
@@ -179,7 +178,7 @@ function Profile({ currentUser }: ProfileProps) {
             <Typography variant="h6" gutterBottom>
               О системе
             </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
+            <Typography variant="body2" color="text.secondary" component="p" sx={{ mb: 2 }}>
               RoadGuard AI - это интеллектуальная система для мониторинга дорожного покрытия. 
               Здесь вы можете сообщать о проблемах на дорогах и отслеживать их статус.
             </Typography>
