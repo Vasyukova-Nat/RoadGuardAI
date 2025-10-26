@@ -38,6 +38,13 @@ function Profile({ currentUser }: ProfileProps) {
     );
   }
 
+  const roleLabels = {
+    citizen: 'Гражданин',
+    inspector: 'Дорожный инспектор',
+    contractor: 'Подрядчик',
+    admin: 'Администратор'
+  };
+
   const userData = {
     organization: '(Mock) ГУП "Городские дороги"',
   };
@@ -75,7 +82,7 @@ function Profile({ currentUser }: ProfileProps) {
                 {currentUser.name}
               </Typography>
               <Chip 
-                label={currentUser.role === 'inspector' ? 'Дорожный инспектор' : currentUser.role} 
+                label={roleLabels[currentUser.role] || currentUser.role}
                 color="primary" 
                 variant="outlined"
                 sx={{ mb: 1 }}

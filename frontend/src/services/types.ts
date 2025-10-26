@@ -35,6 +35,8 @@ export interface Problem {
   description: string | null;
   status: ProblemStatus;
   created_at: string;
+  reporter_id: number;
+  is_from_inspector: boolean;
 }
 
 export interface CreateProblemRequest {
@@ -43,7 +45,7 @@ export interface CreateProblemRequest {
   type: ProblemType;
 }
 
-export type UserRole = 'inspector' | 'contractor' | 'admin';
+export type UserRole = 'citizen' | 'inspector' | 'contractor' | 'admin';
 
 export interface User {
   id: number;
@@ -64,6 +66,7 @@ export interface RegisterRequest {
   email: string;
   name: string;
   password: string;
+  role: string;
 }
 
 export interface AuthResponse {
@@ -92,6 +95,9 @@ export const problemsAPI = {
   
   deleteProblem: (id: number): Promise<void> => 
     api.delete(`/problems/${id}`),
+
+  updateProblemStatus: (id: number, status: ProblemStatus): Promise<{ data: Problem }> => 
+    api.put(`/problems/${id}/status`, null, { params: { status } })
 };
 
 export const authAPI = {

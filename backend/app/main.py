@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
-from .models import ProblemStatus, ProblemType
+from .models import ProblemStatus, ProblemType, User, UserRole
 from .database import get_db, engine
 from .auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -43,6 +43,8 @@ class ProblemResponse(BaseModel):
     description: Optional[str] = None
     status: ProblemStatus
     created_at: datetime
+    reporter_id: int
+    is_from_inspector: bool
 
     class Config:
         from_attributes = True
@@ -51,6 +53,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     name: str
     password: str
+    role: UserRole = UserRole.CITIZEN
 
 class UserResponse(BaseModel):
     id: int
@@ -70,6 +73,16 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+def require_admin(current_user: User = Depends(get_current_user)): 
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    return current_user
+
+def require_admin_or_contractor(current_user: models.User = Depends(get_current_user)):
+    if current_user.role not in [UserRole.ADMIN, UserRole.CONTRACTOR]:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    return current_user
 
 @app.get("/")
 def read_root():
@@ -98,7 +111,8 @@ def create_problem(problem: ProblemCreate, current_user: models.User = Depends(g
             address=problem.address,
             description=problem.description,
             type=problem.type,
-            reporter_id=current_user.id
+            reporter_id=current_user.id,
+            is_from_inspector=(current_user.role == UserRole.INSPECTOR)
         )
 
         db.add(db_problem)
@@ -110,13 +124,11 @@ def create_problem(problem: ProblemCreate, current_user: models.User = Depends(g
     except Exception as e:
         db.rollback()
         print(f"Error creating problem: {str(e)}") 
-        print(f"Error type: {type(e)}")  
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")  
+        print(f"Error type: {type(e)}")   
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.put("/problems/{problem_id}/status")  
-def update_problem_status(problem_id: int, status: ProblemStatus,db: Session = Depends(get_db)):
+def update_problem_status(problem_id: int, status: ProblemStatus, db: Session = Depends(get_db), user: models.User = Depends(require_admin_or_contractor)):
     """Обновить статус проблемы"""
     problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
     if not problem:
@@ -134,6 +146,7 @@ def get_problems(db: Session = Depends(get_db)):
         problems = db.query(models.Problem).all()
         return problems
     except Exception as e:
+        print(f"Error in GET /problems: {str(e)}")  
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.get("/problems/{problem_id}", response_model=ProblemResponse)
@@ -145,8 +158,8 @@ def get_problem(problem_id: int, db: Session = Depends(get_db)):
     return problem
 
 @app.delete("/problems/{problem_id}")
-def delete_problem(problem_id: int, db: Session = Depends(get_db)):
-    """Удалить проблему по ID"""
+def delete_problem(problem_id: int, db: Session = Depends(get_db), user: User = Depends(require_admin)):
+    """Удалить проблему по ID (только для админов)"""
     problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
@@ -168,7 +181,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = models.User(
         email=user.email,
         name=user.name,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        role=user.role 
     )
     db.add(db_user)
     db.commit()

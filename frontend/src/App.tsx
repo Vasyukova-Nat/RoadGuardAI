@@ -35,8 +35,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ user, children }) => {
   return <>{children}</>;
 };
 
-// для редиректа авторизованных пользователей
-const AuthRedirect: React.FC<{ user: User | null }> = ({ user }) => {
+const AuthRedirect: React.FC<{ user: User | null }> = ({ user }) => { // редирект авторизованных пользователей
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -76,8 +75,8 @@ const App: React.FC = () => {
     setCurrentUser(userResponse.data);
   };
 
-  const handleRegister = async (email: string, name: string, password: string) => {
-    await authAPI.register({ email, name, password });
+  const handleRegister = async (email: string, name: string, password: string, role: string) => {
+    await authAPI.register({ email, name, password, role });
     await handleLogin(email, password);
   };
 
@@ -105,7 +104,7 @@ const App: React.FC = () => {
               {/* Публичные маршруты */}
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/problems" element={<ProblemList />} />
+              <Route path="/problems" element={<ProblemList currentUser={currentUser} />} />
               
               {/* Маршруты аутентификации */}
               <Route 

@@ -4,6 +4,7 @@ from .database import Base
 import enum
 
 class UserRole(enum.Enum):
+    CITIZEN = "citizen"
     INSPECTOR = "inspector"
     CONTRACTOR = "contractor"
     ADMIN = "admin"
@@ -14,7 +15,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.INSPECTOR)
+    role = Column(Enum(UserRole), default=UserRole.CITIZEN)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -40,4 +41,5 @@ class Problem(Base):
     type = Column(Enum(ProblemType, create_type=False), default=ProblemType.POTHOLE)
     status = Column(Enum(ProblemStatus, create_type=False), default=ProblemStatus.NEW)
     reporter_id = Column(Integer, nullable=False)
+    is_from_inspector = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
