@@ -39,15 +39,15 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
     <>
     <AppBar position="static">
       <Toolbar>
-        <RoadIcon sx={{ mr: 2 }} />
-        <Typography 
-          variant="h6" 
-          component="div" 
-          sx={{ flexGrow: 1, cursor: 'pointer' }}
+        <Box 
+          sx={{display: 'flex', alignItems: 'center', cursor: 'pointer', flexGrow: 1}}
           onClick={() => navigate('/')} // Клик по лого ведет на /
         >
-          RoadGuard AI
-        </Typography>
+          <RoadIcon sx={{ mr: 2 }} />
+          <Typography variant="h6" component="div">
+            RoadGuard AI
+          </Typography>
+        </Box>
         
         {currentUser ? (
           <>
@@ -61,18 +61,18 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
             
             <Button 
               color="inherit" 
-              onClick={() => navigate('/report')}
-              variant={isActive('/report') ? 'outlined' : 'text'}
-            >
-              Добавить проблему
-            </Button>
-            
-            <Button 
-              color="inherit" 
               onClick={() => navigate('/problems')}
               variant={isActive('/problems') ? 'outlined' : 'text'}
             >
               Список проблем
+            </Button>
+
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/report')}
+              variant={isActive('/report') ? 'outlined' : 'text'}
+            >
+              Добавить проблему
             </Button>
             
             <Button 
@@ -92,12 +92,30 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
             </Button>
           </>
         ) : (
-          <Button 
-            color="inherit" 
-            onClick={onLogin}
-          >
-            Войти
-          </Button>
+          <>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/')}
+              variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
+            >
+              Главная
+            </Button>
+            
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/problems')}
+              variant={isActive('/problems') ? 'outlined' : 'text'}
+            >
+              Список проблем
+            </Button>
+
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/login')}
+            >
+              Войти
+            </Button>
+          </>
         )}
       </Toolbar>
     </AppBar>
