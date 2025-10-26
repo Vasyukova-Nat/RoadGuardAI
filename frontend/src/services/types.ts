@@ -24,23 +24,35 @@ api.interceptors.response.use(
   }
 );
 
+export type ProblemType = 'pothole' | 'crack' | 'manhole' | 'other';
+export type ProblemStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
+
+
 export interface Problem {
   id: number;
+  type: ProblemType;
   address: string;
   description: string | null;
+  status: ProblemStatus;
   created_at: string;
+  reporter_id: number;
+  is_from_inspector: boolean;
 }
 
 export interface CreateProblemRequest {
   address: string;
   description?: string | null;
+  type: ProblemType;
 }
+
+export type UserRole = 'citizen' | 'inspector' | 'contractor' | 'admin';
 
 export interface User {
   id: number;
-  email: string;
   name: string;
-  role: string;
+  email: string;
+  role: UserRole;
+  organization: string;
   is_active: boolean;
   created_at: string;
 }
@@ -54,11 +66,24 @@ export interface RegisterRequest {
   email: string;
   name: string;
   password: string;
+  role: string;
 }
 
 export interface AuthResponse {
   access_token: string;
   token_type: string;
+}
+
+export interface UserStats {
+  reported: number;
+  inProgress: number;
+  resolved: number;
+}
+
+export interface Activity {
+  action: string;
+  date: string;
+  address: string;
 }
 
 export const problemsAPI = {
@@ -70,6 +95,9 @@ export const problemsAPI = {
   
   deleteProblem: (id: number): Promise<void> => 
     api.delete(`/problems/${id}`),
+
+  updateProblemStatus: (id: number, status: ProblemStatus): Promise<{ data: Problem }> => 
+    api.put(`/problems/${id}/status`, null, { params: { status } })
 };
 
 export const authAPI = {

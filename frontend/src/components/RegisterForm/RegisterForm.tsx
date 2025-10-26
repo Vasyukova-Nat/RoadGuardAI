@@ -1,34 +1,41 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, TextField, Button, Alert } from '@mui/material';
+import { Box, 
+  Paper, 
+  Typography, 
+  TextField, 
+  Button, 
+  Alert, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem} from '@mui/material';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
-  onRegister: (email: string, name: string, password: string) => Promise<void>;
+  onRegister: (email: string, name: string, password: string, role: string) => Promise<void>;
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onRegister }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('citizen');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
     
     if (password.length < 5) {
       setError('Пароль должен быть не менее 5 символов');
       setLoading(false);
       return;
-    }
+  }
     
-    try {
-      await onRegister(email, name, password);
-      setSuccess('Регистрация успешна! Вход в систему...');
+  try {
+    await onRegister(email, name, password, role);
     } catch (err: any) {
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
@@ -53,12 +60,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onRegister
           </Alert>
         )}
         
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
-        
         <form onSubmit={handleSubmit}>
           <TextField
             fullWidth
@@ -78,6 +79,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onRegister
             sx={{ mb: 2 }}
             required
           />
+          
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Роль</InputLabel>
+            <Select
+              value={role}
+              label="Роль"
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <MenuItem value="citizen">Гражданин</MenuItem>
+              <MenuItem value="inspector">Дорожный инспектор</MenuItem>
+              <MenuItem value="contractor">Подрядчик</MenuItem>
+              <MenuItem value="admin">Администратор</MenuItem>
+            </Select>
+          </FormControl>
           
           <TextField
             fullWidth

@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Enum
 from sqlalchemy.sql import func
 from .database import Base
 import enum
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.Enum):
+    CITIZEN = "citizen"
     INSPECTOR = "inspector"
     CONTRACTOR = "contractor"
     ADMIN = "admin"
@@ -14,10 +15,22 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
-    role = Column(String, default=UserRole.INSPECTOR.value)
+    role = Column(Enum(UserRole), default=UserRole.CITIZEN)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ProblemType(str, enum.Enum):
+    POTHOLE = "pothole"
+    CRACK = "crack"
+    MANHOLE = "manhole"
+    OTHER = "other"
+
+class ProblemStatus(str, enum.Enum):
+    NEW = "new"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
 
 class Problem(Base):
     __tablename__ = "problems"
@@ -25,7 +38,8 @@ class Problem(Base):
     id = Column(Integer, primary_key=True, index=True)
     address = Column(String, nullable=False)
     description = Column(Text)
-    problem_type = Column(String, default="pothole")
-    status = Column(String, default="new")
+    type = Column(Enum(ProblemType, create_type=False), default=ProblemType.POTHOLE)
+    status = Column(Enum(ProblemStatus, create_type=False), default=ProblemStatus.NEW)
     reporter_id = Column(Integer, nullable=False)
+    is_from_inspector = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

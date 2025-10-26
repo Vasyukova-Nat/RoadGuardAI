@@ -74,7 +74,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onLogin }) =>
         <Button
           fullWidth
           sx={{ mt: 2 }}
-          onClick={onSwitchToRegister}
+          onClick={() => window.location.href = '/register'}
         >
           Нет аккаунта? Зарегистрироваться
         </Button>

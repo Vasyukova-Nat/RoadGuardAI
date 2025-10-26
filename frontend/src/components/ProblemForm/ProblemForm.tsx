@@ -1,4 +1,5 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -13,8 +14,7 @@ import {
   SelectChangeEvent
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { ProblemType } from '../../types';
-import { problemsAPI, CreateProblemRequest } from '../../services/api';
+import { problemsAPI, ProblemType, CreateProblemRequest } from '../../services/types';
 
 const ProblemForm: React.FC = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -23,6 +23,14 @@ const ProblemForm: React.FC = () => {
   const [description, setDescription] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  useEffect(() => {
+    if (!token) {
+      navigate('/');
+    }
+  }, [token, navigate]);
 
   const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
@@ -50,7 +58,8 @@ const ProblemForm: React.FC = () => {
     try {
       const problemData: CreateProblemRequest = {
         address: address.trim(),
-        description: description.trim() || null
+        description: description.trim() || null,
+        type: problemType
       };
 
       await problemsAPI.createProblem(problemData);

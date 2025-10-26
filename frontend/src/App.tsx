@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Header from './components/Header/Header';
@@ -6,8 +7,7 @@ import ProblemForm from './components/ProblemForm/ProblemForm';
 import ProblemList from './components/ProblemList/ProblemList';
 import Dashboard from './components/Dashboard/Dashboard';
 import Profile from './components/Profile/Profile'; 
-import { useState, useEffect } from 'react';
-import { authAPI, User } from './services/api';
+import { authAPI, User } from './services/types';
 import LoginForm from './components/LoginForm/LoginForm';
 import RegisterForm from './components/RegisterForm/RegisterForm';
 import './App.css';
@@ -23,10 +23,33 @@ const theme = createTheme({
   },
 });
 
+interface ProtectedRouteProps {
+  user: User | null;
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ user, children }) => {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const AuthRedirect: React.FC<{ user: User | null }> = ({ user }) => { // редирект авторизованных пользователей
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -50,11 +73,10 @@ const App: React.FC = () => {
     localStorage.setItem('token', response.data.access_token);
     const userResponse = await authAPI.getMe();
     setCurrentUser(userResponse.data);
-    setAuthMode(null);
   };
 
-  const handleRegister = async (email: string, name: string, password: string) => {
-    await authAPI.register({ email, name, password });
+  const handleRegister = async (email: string, name: string, password: string, role: string) => {
+    await authAPI.register({ email, name, password, role });
     await handleLogin(email, password);
   };
 
@@ -67,42 +89,6 @@ const App: React.FC = () => {
     return <div>Загрузка...</div>;
   }
 
-  if (!currentUser && authMode === 'login') {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <LoginForm 
-          onSwitchToRegister={() => setAuthMode('register')}
-          onLogin={handleLogin}
-        />
-      </ThemeProvider>
-    );
-  }
-
-  if (!currentUser && authMode === 'register') {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <RegisterForm 
-          onSwitchToLogin={() => setAuthMode('login')}
-          onRegister={handleRegister}
-        />
-      </ThemeProvider>
-    );
-  }
-
-  if (!currentUser) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <LoginForm 
-          onSwitchToRegister={() => setAuthMode('register')}
-          onLogin={handleLogin}
-        />
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -111,15 +97,64 @@ const App: React.FC = () => {
           <Header 
             currentUser={currentUser} 
             onLogout={handleLogout}
-            onLogin={() => setAuthMode('login')}
+            onLogin={() => window.location.href = '/login'}
           />
           <main>
             <Routes>
+              {/* Публичные маршруты */}
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/report" element={<ProblemForm />} />
-              <Route path="/problems" element={<ProblemList />} />
-              <Route path="/profile" element={<Profile currentUser={currentUser} />} />
+              <Route path="/problems" element={<ProblemList currentUser={currentUser} />} />
+              
+              {/* Маршруты аутентификации */}
+              <Route 
+                path="/login" 
+                element={
+                  <>
+                    <AuthRedirect user={currentUser} />
+                    {!currentUser && (
+                      <LoginForm 
+                        onSwitchToRegister={() => window.location.href = '/register'}
+                        onLogin={handleLogin}
+                      />
+                    )}
+                  </>
+                } 
+              />
+              <Route 
+                path="/register" 
+                element={
+                  <>
+                    <AuthRedirect user={currentUser} />
+                    {!currentUser && (
+                      <RegisterForm 
+                        onSwitchToLogin={() => window.location.href = '/login'}
+                        onRegister={handleRegister}
+                      />
+                    )}
+                  </>
+                } 
+              />
+              
+              {/* Защищенные маршруты */}
+              <Route 
+                path="/report" 
+                element={
+                  <ProtectedRoute user={currentUser}>
+                    <ProblemForm />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute user={currentUser}>
+                    <Profile currentUser={currentUser} />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Резервный маршрут */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
