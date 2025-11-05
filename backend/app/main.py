@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
 from .models import ProblemStatus, ProblemType, User, UserRole
 from .database import get_db, engine
-from .auth import get_password_hash, verify_password, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+from .auth import get_password_hash, verify_password, create_access_token, get_current_user, create_refresh_token, verify_refresh_token, revoke_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 
 try:
     models.Base.metadata.create_all(bind=engine)
@@ -68,11 +68,18 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
 
 def require_admin(current_user: User = Depends(get_current_user)): 
     if current_user.role != UserRole.ADMIN:
@@ -202,7 +209,60 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    refresh_token = create_refresh_token()
+    refresh_token_expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    db_refresh_token = models.RefreshToken(
+        user_id=user.id,
+        token=refresh_token,
+        expires_at=refresh_token_expires
+    )
+    db.add(db_refresh_token)
+    db.commit()
+    
+    return {
+        "access_token": access_token, 
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@app.post("/auth/refresh", response_model=Token)
+def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
+    """Обновление access токена с помощью refresh токена"""
+    user_id = verify_refresh_token(refresh_data.refresh_token, db)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) 
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token, 
+        "refresh_token": refresh_data.refresh_token,  # Возвращаем тот же refresh токен
+        "token_type": "bearer"
+    }
+
+@app.post("/auth/logout")
+def logout(logout_data: LogoutRequest, db: Session = Depends(get_db)):
+    """Выход и отзыв refresh токена"""
+    revoked_token = revoke_refresh_token(logout_data.refresh_token, db)
+    if revoked_token:
+        return {"message": "Successfully logged out"}
+    else:
+        return {"message": "Token not found or already revoked"}
 
 @app.get("/auth/me", response_model=UserResponse)
 def get_current_user_info(current_user: models.User = Depends(get_current_user)):

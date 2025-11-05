@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 import hashlib
 import secrets
+import uuid
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -9,8 +10,10 @@ from .database import get_db
 from . import models
 
 SECRET_KEY = "secret-key-change-in-production"
+REFRESH_SECRET_KEY = "refresh-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -36,6 +39,9 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def create_refresh_token():
+    return str(uuid.uuid4())
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # тут получение пользователя из токена
     credentials_exception = HTTPException(
@@ -55,3 +61,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
     return user
+
+def verify_refresh_token(token: str, db: Session): 
+    refresh_token = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token == token,
+        models.RefreshToken.is_revoked == False,
+        models.RefreshToken.expires_at > datetime.now(timezone.utc)
+    ).first()
+    
+    if not refresh_token:
+        return None
+    
+    return refresh_token.user_id
+
+def revoke_refresh_token(token: str, db: Session): # revoke - отозвать
+    refresh_token = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token == token
+    ).first()
+    
+    if refresh_token:
+        refresh_token.is_revoked = True
+        db.commit()
+    
+    return refresh_token

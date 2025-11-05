@@ -57,12 +57,30 @@ const App: React.FC = () => {
 
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (token || refreshToken) {
       try {
         const response = await authAPI.getMe();
         setCurrentUser(response.data);
       } catch (error) {
-        localStorage.removeItem('token');
+        // Если access токен истек, пробуем использовать refresh токен
+        if (refreshToken) {
+          try {
+            const refreshResponse = await authAPI.refreshToken({ refresh_token: refreshToken });
+            localStorage.setItem('token', refreshResponse.data.access_token);
+            if (refreshResponse.data.refresh_token) {
+              localStorage.setItem('refreshToken', refreshResponse.data.refresh_token);
+            }
+            const userResponse = await authAPI.getMe();
+            setCurrentUser(userResponse.data);
+          } catch (refreshError) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+          }
+        } else {
+          localStorage.removeItem('token');
+        }
       }
     }
     setLoading(false);
@@ -71,6 +89,7 @@ const App: React.FC = () => {
   const handleLogin = async (email: string, password: string) => {
     const response = await authAPI.login({ email, password });
     localStorage.setItem('token', response.data.access_token);
+    localStorage.setItem('refreshToken', response.data.refresh_token);
     const userResponse = await authAPI.getMe();
     setCurrentUser(userResponse.data);
   };
@@ -80,8 +99,17 @@ const App: React.FC = () => {
     await handleLogin(email, password);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      try {
+        await authAPI.logout({ refresh_token: refreshToken });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     setCurrentUser(null);
   };
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Enum, ForeignKey
 from sqlalchemy.sql import func
 from .database import Base
 import enum
@@ -43,3 +43,13 @@ class Problem(Base):
     reporter_id = Column(Integer, nullable=False)
     is_from_inspector = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_revoked = Column(Boolean, default=False)
