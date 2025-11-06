@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { problemsAPI, ProblemType, CreateProblemRequest } from '../../services/types';
+import { useAuthStore } from '../../store/authStore';
 
 const ProblemForm: React.FC = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -25,12 +26,13 @@ const ProblemForm: React.FC = () => {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const currentUser = useAuthStore((state) => state.currentUser);
+
   useEffect(() => {
-    if (!token) {
+    if (!currentUser) {
       navigate('/');
     }
-  }, [token, navigate]);
+  }, [currentUser, navigate]);
 
   const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];

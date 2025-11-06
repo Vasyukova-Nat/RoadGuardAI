@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -7,9 +7,9 @@ import ProblemForm from './components/ProblemForm/ProblemForm';
 import ProblemList from './components/ProblemList/ProblemList';
 import Dashboard from './components/Dashboard/Dashboard';
 import Profile from './components/Profile/Profile'; 
-import { authAPI, User } from './services/types';
 import LoginForm from './components/LoginForm/LoginForm';
 import RegisterForm from './components/RegisterForm/RegisterForm';
+import { useAuthStore } from './store/authStore';
 import './App.css';
 
 const theme = createTheme({
@@ -24,94 +24,37 @@ const theme = createTheme({
 });
 
 interface ProtectedRouteProps {
-  user: User | null;
   children: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ user, children }) => {
-  if (!user) {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const currentUser = useAuthStore((state) => state.currentUser);
+  
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 };
 
-const AuthRedirect: React.FC<{ user: User | null }> = ({ user }) => { // редирект авторизованных пользователей
+const AuthRedirect: React.FC = () => {
   const navigate = useNavigate();
+  const currentUser = useAuthStore((state) => state.currentUser);
   
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [currentUser, navigate]);
 
   return null;
 };
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { loading, checkAuth } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    
-    if (token || refreshToken) {
-      try {
-        const response = await authAPI.getMe();
-        setCurrentUser(response.data);
-      } catch (error) {
-        // Если access токен истек, пробуем использовать refresh токен
-        if (refreshToken) {
-          try {
-            const refreshResponse = await authAPI.refreshToken({ refresh_token: refreshToken });
-            localStorage.setItem('token', refreshResponse.data.access_token);
-            if (refreshResponse.data.refresh_token) {
-              localStorage.setItem('refreshToken', refreshResponse.data.refresh_token);
-            }
-            const userResponse = await authAPI.getMe();
-            setCurrentUser(userResponse.data);
-          } catch (refreshError) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-          }
-        } else {
-          localStorage.removeItem('token');
-        }
-      }
-    }
-    setLoading(false);
-  };
-
-  const handleLogin = async (email: string, password: string) => {
-    const response = await authAPI.login({ email, password });
-    localStorage.setItem('token', response.data.access_token);
-    localStorage.setItem('refreshToken', response.data.refresh_token);
-    const userResponse = await authAPI.getMe();
-    setCurrentUser(userResponse.data);
-  };
-
-  const handleRegister = async (email: string, name: string, password: string, role: string) => {
-    await authAPI.register({ email, name, password, role });
-    await handleLogin(email, password);
-  };
-
-  const handleLogout = async () => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (refreshToken) {
-      try {
-        await authAPI.logout({ refresh_token: refreshToken });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    }
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    setCurrentUser(null);
-  };
+  }, [checkAuth]);
 
   if (loading) {
     return <div>Загрузка...</div>;
@@ -122,30 +65,21 @@ const App: React.FC = () => {
       <CssBaseline />
       <Router>
         <div className="App">
-          <Header 
-            currentUser={currentUser} 
-            onLogout={handleLogout}
-            onLogin={() => window.location.href = '/login'}
-          />
+          <Header />
           <main>
             <Routes>
               {/* Публичные маршруты */}
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/problems" element={<ProblemList currentUser={currentUser} />} />
+              <Route path="/problems" element={<ProblemList />} />
               
               {/* Маршруты аутентификации */}
               <Route 
                 path="/login" 
                 element={
                   <>
-                    <AuthRedirect user={currentUser} />
-                    {!currentUser && (
-                      <LoginForm 
-                        onSwitchToRegister={() => window.location.href = '/register'}
-                        onLogin={handleLogin}
-                      />
-                    )}
+                    <AuthRedirect />
+                    <LoginForm />
                   </>
                 } 
               />
@@ -153,13 +87,8 @@ const App: React.FC = () => {
                 path="/register" 
                 element={
                   <>
-                    <AuthRedirect user={currentUser} />
-                    {!currentUser && (
-                      <RegisterForm 
-                        onSwitchToLogin={() => window.location.href = '/login'}
-                        onRegister={handleRegister}
-                      />
-                    )}
+                    <AuthRedirect />
+                    <RegisterForm />
                   </>
                 } 
               />
@@ -168,7 +97,7 @@ const App: React.FC = () => {
               <Route 
                 path="/report" 
                 element={
-                  <ProtectedRoute user={currentUser}>
+                  <ProtectedRoute>
                     <ProblemForm />
                   </ProtectedRoute>
                 } 
@@ -176,8 +105,8 @@ const App: React.FC = () => {
               <Route 
                 path="/profile" 
                 element={
-                  <ProtectedRoute user={currentUser}>
-                    <Profile currentUser={currentUser} />
+                  <ProtectedRoute>
+                    <Profile />
                   </ProtectedRoute>
                 } 
               />

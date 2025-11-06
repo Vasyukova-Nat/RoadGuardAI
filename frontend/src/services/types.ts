@@ -33,6 +33,14 @@ api.interceptors.response.use(
             localStorage.setItem('refreshToken', refresh_token);
           }
           
+          // Обновляем store если он доступен
+          try {
+            const { useAuthStore } = await import('../store/authStore');
+            useAuthStore.getState().setTokens(access_token, refresh_token || refreshToken);
+          } catch (e) {
+            // Если store недоступен (наприм, при 1-й загрузке), продолжаем работать без него (через localStorage)
+          } 
+          
           // Повторяем оригинальный запрос с новым токеном
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
@@ -40,18 +48,33 @@ api.interceptors.response.use(
           // Если refresh не удался, разлогиниваем пользователя
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
+          try {
+            const { useAuthStore } = await import('../store/authStore');
+            useAuthStore.getState().clearAuth();
+          } catch (e) {
+          }
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }
       } else {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        try {
+          const { useAuthStore } = await import('../store/authStore');
+          useAuthStore.getState().clearAuth();
+        } catch (e) {
+        }
       }
     }
     
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      try {
+        const { useAuthStore } = await import('../store/authStore');
+        useAuthStore.getState().clearAuth();
+      } catch (e) {
+      }
     }
     
     return Promise.reject(error);

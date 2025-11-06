@@ -6,121 +6,118 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import RoadIcon from '@mui/icons-material/DriveEta';
 import PersonIcon from '@mui/icons-material/Person';
-import { User } from '../../services/types';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
+import { useAuthStore } from '../../store/authStore';
 
-interface HeaderProps {
-  currentUser: User | null;
-  onLogout: () => void;
-  onLogin: () => void;
-}
+const Header: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const logout = useAuthStore((state) => state.logout);
 
-const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onLogin }) => {
-  const location = useLocation();  // Хук для получения текущего пути
-  const navigate = useNavigate();  // Хук для навигации
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false); 
+  const isActive = (path: string): boolean => location.pathname === path;
 
-  const isActive = (path: string): boolean => location.pathname === path; // проверка активной страницы
-
-    const handleLogoutClick = () => {
-    setLogoutDialogOpen(true); 
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
   };
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setLogoutDialogOpen(false);
-    onLogout(); 
+    await logout();
   };
 
   const handleCancelLogout = () => {
-    setLogoutDialogOpen(false); 
+    setLogoutDialogOpen(false);
   };
 
   return (
     <>
-    <AppBar position="static">
-      <Toolbar>
-        <Box 
-          sx={{display: 'flex', alignItems: 'center', cursor: 'pointer', flexGrow: 1}}
-          onClick={() => navigate('/')} // Клик по лого ведет на /
-        >
-          <RoadIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div">
-            RoadGuard AI
-          </Typography>
-        </Box>
-        
-        {currentUser ? (
-          <>
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/')}
-              variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
-            >
-              Главная
-            </Button>
-            
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/problems')}
-              variant={isActive('/problems') ? 'outlined' : 'text'}
-            >
-              Список проблем
-            </Button>
+      <AppBar position="static">
+        <Toolbar>
+          <Box 
+            sx={{display: 'flex', alignItems: 'center', cursor: 'pointer', flexGrow: 1}}
+            onClick={() => navigate('/')}
+          >
+            <RoadIcon sx={{ mr: 2 }} />
+            <Typography variant="h6" component="div">
+              RoadGuard AI
+            </Typography>
+          </Box>
+          
+          {currentUser ? (
+            <>
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/')}
+                variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
+              >
+                Главная
+              </Button>
+              
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/problems')}
+                variant={isActive('/problems') ? 'outlined' : 'text'}
+              >
+                Список проблем
+              </Button>
 
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/report')}
-              variant={isActive('/report') ? 'outlined' : 'text'}
-            >
-              Добавить проблему
-            </Button>
-            
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/profile')}
-              variant={isActive('/profile') ? 'outlined' : 'text'}
-              startIcon={<PersonIcon />}
-            >
-              {currentUser.name}
-            </Button>
-            
-            <Button 
-              color="inherit" 
-              onClick={handleLogoutClick}
-            >
-              Выйти
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/')}
-              variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
-            >
-              Главная
-            </Button>
-            
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/problems')}
-              variant={isActive('/problems') ? 'outlined' : 'text'}
-            >
-              Список проблем
-            </Button>
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/report')}
+                variant={isActive('/report') ? 'outlined' : 'text'}
+              >
+                Добавить проблему
+              </Button>
+              
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/profile')}
+                variant={isActive('/profile') ? 'outlined' : 'text'}
+                startIcon={<PersonIcon />}
+              >
+                {currentUser.name}
+              </Button>
+              
+              <Button 
+                color="inherit" 
+                onClick={handleLogoutClick}
+              >
+                Выйти
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/')}
+                variant={isActive('/') || isActive('/dashboard') ? 'outlined' : 'text'}
+              >
+                Главная
+              </Button>
+              
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/problems')}
+                variant={isActive('/problems') ? 'outlined' : 'text'}
+              >
+                Список проблем
+              </Button>
 
-            <Button 
-              color="inherit" 
-              onClick={() => navigate('/login')}
-            >
-              Войти
-            </Button>
-          </>
-        )}
-      </Toolbar>
-    </AppBar>
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/login')}
+              >
+                Войти
+              </Button>
+            </>
+          )}
+        </Toolbar>
+      </AppBar>
 
-    <Dialog
+      <Dialog
         open={logoutDialogOpen}
         onClose={handleCancelLogout}
         aria-labelledby="logout-dialog-title"

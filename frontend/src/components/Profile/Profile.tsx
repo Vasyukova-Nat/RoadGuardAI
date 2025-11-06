@@ -20,13 +20,11 @@ import {
   CheckCircle as CheckCircleIcon,
   Build as BuildIcon
 } from '@mui/icons-material';
-import { User } from '../../services/types';
+import { useAuthStore } from '../../store/authStore';
 
-interface ProfileProps {
-  currentUser: User | null;
-}
+function Profile() {
+  const currentUser = useAuthStore((state) => state.currentUser);
 
-function Profile({ currentUser }: ProfileProps) {
   if (!currentUser) {
     return (
       <Box sx={{ p: 3, maxWidth: 1200, margin: '0 auto' }}>
