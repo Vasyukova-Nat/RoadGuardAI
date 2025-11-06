@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Box, Paper, Typography, TextField, Button, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 
-interface LoginFormProps {
-  onSwitchToRegister: () => void;
-  onLogin: (email: string, password: string) => Promise<void>;
-}
-
-const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onLogin }) => {
+const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const navigate = useNavigate();
+  const login = useAuthStore((state) => state.login);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +18,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onLogin }) =>
     setError('');
     
     try {
-      await onLogin(email, password);
+      await login(email, password);
+      navigate('/'); // перенаправляет на / после логина
     } catch (err: any) {
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
@@ -74,7 +75,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onLogin }) =>
         <Button
           fullWidth
           sx={{ mt: 2 }}
-          onClick={() => window.location.href = '/register'}
+          onClick={() => navigate('/register')}
         >
           Нет аккаунта? Зарегистрироваться
         </Button>

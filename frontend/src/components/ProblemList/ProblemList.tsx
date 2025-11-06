@@ -14,16 +14,15 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
-import { problemsAPI, Problem, ProblemType, ProblemStatus, User } from '../../services/types';
+import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
+import { useAuthStore } from '../../store/authStore';
 
-interface ProblemListProps {
-  currentUser: User | null;
-}
-
-function ProblemList({ currentUser }: ProblemListProps) {
+function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const currentUser = useAuthStore((state) => state.currentUser);
 
   useEffect(() => {
     loadProblems();

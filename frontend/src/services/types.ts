@@ -16,17 +16,73 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          const response = await authAPI.refreshToken({ refresh_token: refreshToken });
+          const { access_token, refresh_token } = response.data;
+          
+          localStorage.setItem('token', access_token);
+          if (refresh_token) {
+            localStorage.setItem('refreshToken', refresh_token);
+          }
+          
+          // Обновляем store если он доступен
+          try {
+            const { useAuthStore } = await import('../store/authStore');
+            useAuthStore.getState().setTokens(access_token, refresh_token || refreshToken);
+          } catch (e) {
+            // Если store недоступен (наприм, при 1-й загрузке), продолжаем работать без него (через localStorage)
+          } 
+          
+          // Повторяем оригинальный запрос с новым токеном
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Если refresh не удался, разлогиниваем пользователя
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          try {
+            const { useAuthStore } = await import('../store/authStore');
+            useAuthStore.getState().clearAuth();
+          } catch (e) {
+          }
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        try {
+          const { useAuthStore } = await import('../store/authStore');
+          useAuthStore.getState().clearAuth();
+        } catch (e) {
+        }
+      }
+    }
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      try {
+        const { useAuthStore } = await import('../store/authStore');
+        useAuthStore.getState().clearAuth();
+      } catch (e) {
+      }
     }
+    
     return Promise.reject(error);
   }
 );
 
 export type ProblemType = 'pothole' | 'crack' | 'manhole' | 'other';
 export type ProblemStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
-
 
 export interface Problem {
   id: number;
@@ -71,7 +127,16 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
+}
+
+export interface LogoutRequest {
+  refresh_token: string;
 }
 
 export interface UserStats {
@@ -106,6 +171,12 @@ export const authAPI = {
   
   register: (registerData: RegisterRequest): Promise<{ data: User }> =>
     api.post('/auth/register', registerData),
+  
+  refreshToken: (refreshData: RefreshTokenRequest): Promise<{ data: AuthResponse }> =>
+    api.post('/auth/refresh', refreshData),
+  
+  logout: (logoutData: LogoutRequest): Promise<void> =>
+    api.post('/auth/logout', logoutData),
   
   getMe: (): Promise<{ data: User }> =>
     api.get('/auth/me'),

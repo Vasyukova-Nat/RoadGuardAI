@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, 
+import { 
+  Box, 
   Paper, 
   Typography, 
   TextField, 
@@ -8,20 +9,21 @@ import { Box,
   FormControl, 
   InputLabel, 
   Select, 
-  MenuItem} from '@mui/material';
+  MenuItem 
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 
-interface RegisterFormProps {
-  onSwitchToLogin: () => void;
-  onRegister: (email: string, name: string, password: string, role: string) => Promise<void>;
-}
-
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onRegister }) => {
+const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('citizen');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const navigate = useNavigate();
+  const register = useAuthStore((state) => state.register);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,10 +34,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onRegister
       setError('Пароль должен быть не менее 5 символов');
       setLoading(false);
       return;
-  }
+    }
     
-  try {
-    await onRegister(email, name, password, role);
+    try {
+      await register(email, name, password, role);
+      navigate('/'); // перенаправляет на / после регистрации
     } catch (err: any) {
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
@@ -118,7 +121,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onRegister
         <Button
           fullWidth
           sx={{ mt: 2 }}
-          onClick={onSwitchToLogin}
+          onClick={() => navigate('/login')}
         >
           Уже есть аккаунт? Войти
         </Button>
