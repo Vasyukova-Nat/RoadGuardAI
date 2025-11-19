@@ -1,0 +1,63 @@
+datasets/
+test_data/
+
+roadguard_models/**/*.png
+roadguard_models/**/*.jpg
+roadguard_models/**/*.csv
+roadguard_models/**/*.yaml
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# Testing
+.coverage
+.pytest_cache/
+
+# Windows
+Desktop.ini
+
+# SQLite
+*.sqlite
