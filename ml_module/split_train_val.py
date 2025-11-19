@@ -17,6 +17,6 @@ for i, name in enumerate(files):
     split = "train" if i < split_idx else "val"
     
     shutil.copy2(f"{dataset_path}/images/train/{name}.jpg", f"{output_path}/images/{split}/{name}.jpg")
-    shutil.copy2(f"{dataset_path}/labels/train/{name}.xml", f"{output_path}/labels/{split}/{name}.xml")
+    shutil.copy2(f"{dataset_path}/labels/train/{name}.txt", f"{output_path}/labels/{split}/{name}.txt")
 
 print(f"Готово! {split_idx} train, {len(files)-split_idx} val")
