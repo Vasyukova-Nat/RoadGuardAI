@@ -2,8 +2,8 @@ import shutil
 import random
 from pathlib import Path
 
-dataset_path = Path("datasets/RDD2022_yolo_small")
-output_path = Path("datasets/RDD2022_yolo_small_split")
+dataset_path = Path("datasets/RDD2022_yolo_half")
+output_path = Path("datasets/RDD2022_yolo_half_split")
 
 for folder in ["images/train", "images/val", "labels/train", "labels/val"]:
     (output_path / folder).mkdir(parents=True, exist_ok=True)
