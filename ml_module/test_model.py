@@ -1,11 +1,11 @@
 from ultralytics import YOLO
 
-model = YOLO('roadguard_models/v0/weights/best.pt')
+model = YOLO('roadguard_models/v1/weights/best.pt')
 
 results = model.predict(
     source='test_data/images',
     save=True,  # сохранение рез-ов
-    conf=0.5    # уверенность
+    conf=0.05    # уверенность
 )
 
 for result in results:

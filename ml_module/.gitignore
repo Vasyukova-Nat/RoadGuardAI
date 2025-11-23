@@ -1,9 +1,13 @@
-datasets/
+datasets/**/images/
+datasets/**/labels/
+datasets/*.gz
+
 test_data/
 
 roadguard_models/**/*.png
 roadguard_models/**/*.jpg
 roadguard_models/**/*.csv
+roadguard_models/**/*.txt
 roadguard_models/**/*.yaml
 
 # Virtual environment
