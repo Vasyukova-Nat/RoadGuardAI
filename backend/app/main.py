@@ -3,43 +3,47 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import shutil
-import os
-from tempfile import NamedTemporaryFile
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta, timezone
 from . import models
 from .models import ProblemStatus, ProblemType, User, UserRole
 from .database import get_db, engine
+from tempfile import NamedTemporaryFile
 from .auth import get_password_hash, verify_password, create_access_token, get_current_user, create_refresh_token, verify_refresh_token, revoke_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+import os
+import torch
+import torch.serialization
+from ultralytics import YOLO
+from ultralytics.nn.tasks import DetectionModel
+from pathlib import Path
+import contextlib
 
-try:
-    from ultralytics import YOLO
-    import cv2
-    import numpy as np
-    ML_AVAILABLE = True
-    print("ML библиотеки загружены успешно!")
+@contextlib.contextmanager
+def disable_weights_only_check(): # безопасная загрузка нейросети
+    torch.serialization.add_safe_globals([DetectionModel])
+    original_load = torch.load
+    def custom_load(*args, **kwargs):
+        kwargs['weights_only'] = False
+        return original_load(*args, **kwargs)
+    torch.load = custom_load
     
-    # Загружаем модель при старте приложения
-    project_root = Path(__file__).parent.absolute().parent.absolute().parent.absolute()         
-    MODEL_PATH = project_root / "ml_module" / "roadguard_models" / "v2" / "weights" / "best.pt"
-    
-    if MODEL_PATH.exists():
+    try:
+        yield
+    finally:
+        torch.load = original_load
+
+
+MODEL_PATH = r"C:\Users\lucky\Desktop\РПЦ\RoadGuardAI\ml_module\roadguard_models\v2\weights\best.pt"
+with disable_weights_only_check():
+    if Path(MODEL_PATH).exists():
         model = YOLO(str(MODEL_PATH))
-        print(f"Модель загружена: {MODEL_PATH}")
-        print(f"   Классы модели: {model.names if hasattr(model, 'names') else 'Неизвестно'}")
+        print(f"Модель загружена! Классы: {model.names}")
+        ML_AVAILABLE = True
     else:
-        print(f"ВНИМАНИЕ: Модель не найдена по пути {MODEL_PATH}")
-        ML_AVAILABLE = False
+        print("Модель не найдена")
         model = None
-except ImportError as e:
-    print(f"ML библиотеки не доступны: {e}")
-    ML_AVAILABLE = False
-    model = None
-except Exception as e:
-    print(f"Ошибка загрузки модели: {e}")
-    ML_AVAILABLE = False
-    model = None
+        ML_AVAILABLE = False
 
 try:
     models.Base.metadata.create_all(bind=engine)

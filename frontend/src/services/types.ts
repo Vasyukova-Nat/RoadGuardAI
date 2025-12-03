@@ -11,6 +11,11 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (config.data instanceof FormData) { // для FormData не устанавливаем Content-Type, браузер сделает это сам
+    delete config.headers['Content-Type'];
+  }
+
   return config;
 });
 
@@ -181,9 +186,18 @@ export const problemsAPI = {
   analyzeImage: (imageFile: File): Promise<{ data: ImageAnalysisResponse }> => {
     const formData = new FormData();
     formData.append('file', imageFile);
+    
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     return api.post('/api/analyze-image', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        ...headers,
+        // для FormData браузер сам установит правильный Content-Type
       },
     });
   }
