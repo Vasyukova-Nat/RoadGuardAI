@@ -32,7 +32,7 @@ def convert_annotation(xml_path, txt_path):
             
             f.write(f"{CLASSES[class_name]} {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}\n")
 
-xml_dir = Path("datasets/RDD2022_yolo_half/labels/train")
+xml_dir = Path("datasets/RDD2022_yolo/labels/train")
 
 for xml_file in xml_dir.glob("*.xml"):
     txt_path = xml_file.with_suffix('.txt')

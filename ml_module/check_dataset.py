@@ -1,7 +1,7 @@
 from pathlib import Path
 
 def check_dataset():
-    dataset_path = Path("datasets/RDD2022_yolo_half_split")
+    dataset_path = Path("datasets/RDD2022_yolo_split")
     
     for split in ["train", "val"]:
         print(f"\n=== {split} ===")

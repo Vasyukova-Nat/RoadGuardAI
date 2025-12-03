@@ -1,6 +1,0 @@
-path: /content/RDD2022_yolo_half_split
-train: images/train
-val: images/val
-
-nc: 4 # число классов
-names: ["D00", "D10", "D20", "D40"]
