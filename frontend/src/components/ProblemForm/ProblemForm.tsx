@@ -139,8 +139,10 @@ const ProblemForm: React.FC = () => {
             label="Тип проблемы"
             onChange={handleProblemTypeChange}
           >
+            <MenuItem value="long_crack">Продольная трещина</MenuItem>
+            <MenuItem value="transverse_crack">Поперечная трещина</MenuItem>
+            <MenuItem value="alligator_crack">Аллигаторная трещина</MenuItem>
             <MenuItem value="pothole">Яма</MenuItem>
-            <MenuItem value="crack">Трещина</MenuItem>
             <MenuItem value="manhole">Отсутствует люк</MenuItem>
             <MenuItem value="other">Другое</MenuItem>
           </Select>

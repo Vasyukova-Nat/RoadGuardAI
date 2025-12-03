@@ -81,7 +81,7 @@ api.interceptors.response.use(
   }
 );
 
-export type ProblemType = 'pothole' | 'crack' | 'manhole' | 'other';
+export type ProblemType = 'long_crack' | 'transverse_crack' | 'alligator_crack' | 'pothole' | 'manhole' | 'other';
 export type ProblemStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
 
 export interface Problem {
@@ -151,6 +151,20 @@ export interface Activity {
   address: string;
 }
 
+export interface DefectDetection {
+  type: ProblemType;
+  confidence: number;
+  bbox: [number, number, number, number]; // [x1, y1, x2, y2]
+  class_name: string; // D00, D10 и т.д
+}
+
+export interface ImageAnalysisResponse {
+  defects: DefectDetection[];
+  detected_types: ProblemType[];
+  dominant_type: ProblemType | null;
+  confidence: number | null;
+}
+
 export const problemsAPI = {
   getProblems: (): Promise<{ data: Problem[] }> => 
     api.get('/problems'),
@@ -162,7 +176,17 @@ export const problemsAPI = {
     api.delete(`/problems/${id}`),
 
   updateProblemStatus: (id: number, status: ProblemStatus): Promise<{ data: Problem }> => 
-    api.put(`/problems/${id}/status`, null, { params: { status } })
+    api.put(`/problems/${id}/status`, null, { params: { status } }),
+
+  analyzeImage: (imageFile: File): Promise<{ data: ImageAnalysisResponse }> => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    return api.post('/api/analyze-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
 };
 
 export const authAPI = {

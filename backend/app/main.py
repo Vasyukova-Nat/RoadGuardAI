@@ -1,14 +1,45 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import shutil
+import os
+from tempfile import NamedTemporaryFile
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
-from typing import Optional
 from datetime import datetime, timedelta, timezone
-from fastapi.middleware.cors import CORSMiddleware
 from . import models
 from .models import ProblemStatus, ProblemType, User, UserRole
 from .database import get_db, engine
 from .auth import get_password_hash, verify_password, create_access_token, get_current_user, create_refresh_token, verify_refresh_token, revoke_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+
+try:
+    from ultralytics import YOLO
+    import cv2
+    import numpy as np
+    ML_AVAILABLE = True
+    print("ML библиотеки загружены успешно!")
+    
+    # Загружаем модель при старте приложения
+    project_root = Path(__file__).parent.absolute().parent.absolute().parent.absolute()         
+    MODEL_PATH = project_root / "ml_module" / "roadguard_models" / "v2" / "weights" / "best.pt"
+    
+    if MODEL_PATH.exists():
+        model = YOLO(str(MODEL_PATH))
+        print(f"Модель загружена: {MODEL_PATH}")
+        print(f"   Классы модели: {model.names if hasattr(model, 'names') else 'Неизвестно'}")
+    else:
+        print(f"ВНИМАНИЕ: Модель не найдена по пути {MODEL_PATH}")
+        ML_AVAILABLE = False
+        model = None
+except ImportError as e:
+    print(f"ML библиотеки не доступны: {e}")
+    ML_AVAILABLE = False
+    model = None
+except Exception as e:
+    print(f"Ошибка загрузки модели: {e}")
+    ML_AVAILABLE = False
+    model = None
 
 try:
     models.Base.metadata.create_all(bind=engine)
@@ -81,6 +112,18 @@ class RefreshTokenRequest(BaseModel):
 class LogoutRequest(BaseModel):
     refresh_token: str
 
+class DefectDetection(BaseModel):
+    type: str  
+    confidence: float
+    bbox: List[int]  
+    class_name: str  # оригинальное имя класса из модели
+
+class ImageAnalysisResponse(BaseModel):
+    defects: List[DefectDetection]
+    detected_types: List[str]
+    dominant_type: Optional[str] = None
+    confidence: Optional[float] = None
+
 def require_admin(current_user: User = Depends(get_current_user)): 
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -90,6 +133,15 @@ def require_admin_or_contractor(current_user: models.User = Depends(get_current_
     if current_user.role not in [UserRole.ADMIN, UserRole.CONTRACTOR]:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return current_user
+
+def map_model_class_to_problem_type(class_name: str) -> str: # маппинг
+    mapping = {
+        'D00': 'long_crack',      
+        'D10': 'transverse_crack', 
+        'D20': 'alligator_crack', 
+        'D40': 'pothole',         
+    }
+    return mapping.get(class_name, 'other')
 
 @app.get("/")
 def read_root():
@@ -268,6 +320,93 @@ def logout(logout_data: LogoutRequest, db: Session = Depends(get_db)):
 def get_current_user_info(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+@app.post("/api/analyze-image", response_model=ImageAnalysisResponse)
+async def analyze_image(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Анализ изображения дороги для обнаружения дефектов"""
+    if not ML_AVAILABLE or model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="ML сервис временно недоступен"
+        )
+    
+    # Проверяем тип файла
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(
+            status_code=400,
+            detail="Файл должен быть изображением"
+        )
+    
+    try:
+        # Сохраняем временный файл
+        with NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+            shutil.copyfileobj(file.file, temp_file)
+            temp_path = temp_file.name
+        
+        # Запускаем модель
+        results = model.predict(
+            source=temp_path,
+            conf=0.3,  # Порог уверенности
+            save=False,
+            verbose=False
+        )
+        
+        # Обрабатываем результаты
+        defects = []
+        detected_types = set()
+        
+        for result in results:
+            if result.boxes is not None:
+                boxes = result.boxes.cpu().numpy()
+                for box in boxes:
+                    # Получаем данные бокса
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    confidence = float(box.conf[0])
+                    class_id = int(box.cls[0])
+                    
+                    # Получаем имя класса из модели
+                    class_name = result.names[class_id]  # D00, D10, D20, D40
+                    
+                    # Маппим на наш тип
+                    problem_type = map_model_class_to_problem_type(class_name)
+                    
+                    defect = DefectDetection(
+                        type=problem_type,
+                        confidence=confidence,
+                        bbox=[x1, y1, x2, y2],
+                        class_name=class_name
+                    )
+                    defects.append(defect)
+                    detected_types.add(problem_type)
+        
+        # Определяем доминирующий тип
+        dominant_type = None
+        if defects:
+            # Группируем по типам и находим самый частый
+            type_counts = {}
+            for defect in defects:
+                type_counts[defect.type] = type_counts.get(defect.type, 0) + 1
+            
+            dominant_type = max(type_counts, key=type_counts.get)
+        
+        os.unlink(temp_path) # удаляем временный файл
+        
+        return ImageAnalysisResponse(
+            defects=defects,
+            detected_types=list(detected_types),
+            dominant_type=dominant_type,
+            confidence=defects[0].confidence if defects else None
+        )
+        
+    except Exception as e:
+        print(f"Ошибка анализа изображения: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка обработки изображения: {str(e)}"
+        )
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
