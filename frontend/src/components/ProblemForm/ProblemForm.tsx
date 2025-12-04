@@ -15,14 +15,15 @@ import {
   Chip,
   Card,
   CardContent,
-  Divider
+  Divider,
+  Switch
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import TouchAppIcon from '@mui/icons-material/TouchApp';
 import { problemsAPI, ProblemType, CreateProblemRequest, DefectDetection, ImageAnalysisResponse } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
+
 
 const ProblemForm: React.FC = () => {
   const navigate = useNavigate();
@@ -153,17 +154,6 @@ const ProblemForm: React.FC = () => {
     };
   }, [photo, detectedDefects]);
 
-  const handleAcceptAiSuggestion = (): void => { // согласие с результатами нейросети
-    if (analysisResult?.dominant_type) {
-      setProblemType(analysisResult.dominant_type);
-      setUseAiSuggestion(true);
-    }
-  };
-
-  const handleRejectAiSuggestion = (): void => { // несогласие с результатами нейросети
-    setUseAiSuggestion(false);
-  };
-
   const handleSubmit = async (): Promise<void> => {
     if (!address.trim()) {
       setMessage({ text: 'Пожалуйста, укажите адрес', type: 'error' });
@@ -225,7 +215,7 @@ const ProblemForm: React.FC = () => {
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AutoAwesomeIcon /> Сообщить о проблеме с ИИ
+          Сообщить о проблеме
         </Typography>
 
         <Box sx={{ mb: 3 }}>
@@ -259,7 +249,7 @@ const ProblemForm: React.FC = () => {
           {photo && (
             <Box sx={{ mt: 3, position: 'relative' }}>
               <Typography variant="subtitle1" gutterBottom>
-                Результаты анализа:
+                Результаты анализа нейросети:
               </Typography>
               
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
@@ -325,23 +315,43 @@ const ProblemForm: React.FC = () => {
                       <Box>
                         <Divider sx={{ my: 1 }} />
                         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                          <Button
-                            variant="contained"
-                            startIcon={<CheckIcon />}
-                            onClick={handleAcceptAiSuggestion}
-                            disabled={!analysisResult.dominant_type}
-                            color="success"
-                          >
-                            Использовать результат ИИ
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            startIcon={<CloseIcon />}
-                            onClick={handleRejectAiSuggestion}
-                            color="inherit"
-                          >
-                            Выбрать вручную
-                          </Button>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mt: 2 }}>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1,
+                              color: !useAiSuggestion ? 'primary.main' : 'text.secondary'
+                            }}>
+                              <TouchAppIcon />
+                              <Typography variant="body2" fontWeight={!useAiSuggestion ? 'bold' : 'normal'}>
+                                Указать тип проблемы вручную
+                              </Typography>
+                            </Box>
+                            
+                            <Switch
+                              checked={useAiSuggestion}
+                              onChange={(e) => {
+                                if (e.target.checked && analysisResult?.dominant_type) {
+                                  setProblemType(analysisResult.dominant_type);
+                                }
+                                setUseAiSuggestion(e.target.checked);
+                              }}
+                              disabled={!analysisResult?.dominant_type}
+                              color="primary"
+                            />
+                            
+                            <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 1,
+                              color: useAiSuggestion ? 'primary.main' : 'text.secondary'
+                            }}>
+                              <AutoAwesomeIcon />
+                              <Typography variant="body2" fontWeight={useAiSuggestion ? 'bold' : 'normal'}>
+                                Использовать результат ИИ
+                              </Typography>
+                            </Box>
+                          </Box>
                         </Box>
                       </Box>
                     </Box>
@@ -375,7 +385,7 @@ const ProblemForm: React.FC = () => {
           
           {useAiSuggestion && analysisResult?.dominant_type && (
             <Typography variant="caption" color="primary" sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AutoAwesomeIcon fontSize="small" /> Выбрано нейросетью
+              <AutoAwesomeIcon fontSize="small" /> Распознано нейросетью
             </Typography>
           )}
         </FormControl>
@@ -409,9 +419,8 @@ const ProblemForm: React.FC = () => {
           disabled={!address.trim() || loading || analyzing}
           fullWidth
           size="large"
-          startIcon={useAiSuggestion ? <AutoAwesomeIcon /> : undefined}
         >
-          {loading ? 'Отправка...' : `Отправить проблему ${useAiSuggestion ? '(выбран рез-т ИИ)' : ''}`}
+          {loading ? 'Отправка...' : `Отправить проблему`}
         </Button>
       </Paper>
     </Box>
