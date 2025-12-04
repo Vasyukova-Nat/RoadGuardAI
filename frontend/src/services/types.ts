@@ -112,8 +112,8 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: UserRole;
-  organization: string;
+  role: UserRole;  
+  organization: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -128,6 +128,7 @@ export interface RegisterRequest {
   name: string;
   password: string;
   role: string;
+  organization?: string;
 }
 
 export interface AuthResponse {

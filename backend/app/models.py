@@ -18,11 +18,14 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.CITIZEN)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
+    organization = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class ProblemType(str, enum.Enum):
+    LONG_CRACK = "long_crack"
+    TRANSVERSE_CRACK = "transverse_crack"
+    ALLIGATOR_CRACK = "alligator_crack"
     POTHOLE = "pothole"
-    CRACK = "crack"
     MANHOLE = "manhole"
     OTHER = "other"
 

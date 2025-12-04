@@ -38,7 +38,7 @@ MODEL_PATH = r"C:\Users\lucky\Desktop\РПЦ\RoadGuardAI\ml_module\roadguard_mod
 with disable_weights_only_check():
     if Path(MODEL_PATH).exists():
         model = YOLO(str(MODEL_PATH))
-        print(f"Модель загружена! Классы: {model.names}")
+        print(f"Модель загружена!")
         ML_AVAILABLE = True
     else:
         print("Модель не найдена")
@@ -89,6 +89,7 @@ class UserCreate(BaseModel):
     name: str
     password: str
     role: UserRole = UserRole.CITIZEN
+    organization: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -97,6 +98,7 @@ class UserResponse(BaseModel):
     role: str
     is_active: bool
     created_at: datetime
+    organization: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -245,7 +247,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         name=user.name,
         hashed_password=hashed_password,
-        role=user.role 
+        role=user.role,
+        organization=user.organization
     )
     db.add(db_user)
     db.commit()

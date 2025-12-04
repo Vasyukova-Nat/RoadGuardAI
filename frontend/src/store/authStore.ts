@@ -16,7 +16,7 @@ interface AuthState {
   // Асинхронные операции (работа с API)
   checkAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, name: string, password: string, role: string) => Promise<void>;
+  register: (email: string, name: string, password: string, role: string, organization?: string) => Promise<void>;
   logout: () => Promise<void>;
   clearAuth: () => void;
 }
@@ -87,8 +87,16 @@ export const useAuthStore = create<AuthState>()(
         set({ currentUser: userResponse.data });
       },
 
-      register: async (email: string, name: string, password: string, role: string) => {
-        await authAPI.register({ email, name, password, role });
+      register: async (email: string, name: string, password: string, role: string, organization?: string) => {
+        // Создаем объект с правильными типами
+        const registerData = { 
+          email, 
+          name, 
+          password, 
+          role, 
+          organization: organization  // TypeScript теперь разрешит undefined
+        };
+        await authAPI.register(registerData);
         await get().login(email, password);
       },
 

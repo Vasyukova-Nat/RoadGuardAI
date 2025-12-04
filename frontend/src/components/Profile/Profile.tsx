@@ -43,10 +43,6 @@ function Profile() {
     admin: 'Администратор'
   };
 
-  const userData = {
-    organization: '(Mock) ГУП "Городские дороги"',
-  };
-
   const userStats = [
     { label: '(Mock) Отправлено проблем', value: 47, icon: <WarningIcon />, color: '#1976d2' },
     { label: '(Mock) Проблем в работе', value: 8, icon: <BuildIcon />, color: '#ed6c02' },
@@ -105,7 +101,7 @@ function Profile() {
                 </ListItemIcon>
                 <ListItemText 
                   primary="Организация" 
-                  secondary={userData.organization}
+                  secondary={currentUser.organization ? currentUser.organization : "Не указана"}
                 />
               </ListItem>
               <ListItem>
