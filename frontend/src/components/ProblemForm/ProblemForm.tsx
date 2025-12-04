@@ -101,14 +101,16 @@ const ProblemForm: React.FC = () => {
     
     if (!ctx) return;
     
-    img.onload = () => {
+    const drawBoundingBoxes = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       setCanvasSize({ width: img.width, height: img.height });
       
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // очищаем canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      detectedDefects.forEach((defect, index) => { // Рисуем bounding boxes
+      ctx.drawImage(img, 0, 0); // рисуем оригинальное изображение на canvas
+      
+      detectedDefects.forEach((defect, index) => {
         const [x1, y1, x2, y2] = defect.bbox;
         const confidence = defect.confidence;
         
@@ -125,13 +127,29 @@ const ProblemForm: React.FC = () => {
         
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);  // прямоугольник
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1); // прямоуг-к
         
+        //подложка для текста
         const label = `${defect.type.replace('_', ' ')} ${(confidence * 100).toFixed(1)}%`;
+        const textWidth = ctx.measureText(label).width;
+        
         ctx.fillStyle = color;
-        ctx.font = '16px Arial';
-        ctx.fillText(label, x1, y1 - 5);
+        ctx.fillRect(x1, y1 - 20, textWidth + 10, 20);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Arial';
+        ctx.fillText(label, x1 + 5, y1 - 5);
       });
+    };
+    
+    if (img.complete) { // если изображение уже загружено, рисуем сразу
+      drawBoundingBoxes();
+    } else {
+      img.onload = drawBoundingBoxes; // ждем загрузки изображения
+    }
+    
+    return () => {
+      img.onload = null;
     };
   }, [photo, detectedDefects]);
 
@@ -164,8 +182,7 @@ const ProblemForm: React.FC = () => {
       
       setMessage({ text: 'Проблема успешно отправлена!', type: 'success' });
       
-      // Очищаем форму
-      setPhoto(null);
+      setPhoto(null); // очищаем форму
       setPhotoFile(null);
       setProblemType('pothole');
       setAddress('');
@@ -246,17 +263,6 @@ const ProblemForm: React.FC = () => {
               </Typography>
               
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                <img 
-                  ref={imageRef}
-                  src={photo} 
-                  alt="Preview" 
-                  style={{ 
-                    maxWidth: '100%', 
-                    maxHeight: 400,
-                    borderRadius: '8px',
-                    display: 'block'
-                  }} 
-                />
                 <canvas
                   ref={canvasRef}
                   style={{
@@ -265,8 +271,23 @@ const ProblemForm: React.FC = () => {
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    pointerEvents: 'none'
+                    pointerEvents: 'none',
+                    zIndex: 2  // Canvas поверх изображения
                   }}
+                />
+
+                <img 
+                  ref={imageRef}
+                  src={photo} 
+                  alt="Preview" 
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: 400,
+                    borderRadius: '8px',
+                    display: 'block',
+                    position: 'relative',
+                    zIndex: 1
+                  }} 
                 />
               </Box>
 
