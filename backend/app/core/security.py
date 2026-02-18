@@ -1,19 +1,14 @@
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 import hashlib
 import secrets
 import uuid
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from .database import get_db
-from . import models
-
-SECRET_KEY = "secret-key-change-in-production"
-REFRESH_SECRET_KEY = "refresh-secret-key-change-in-production"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+from ..core.config import ALGORITHM, SECRET_KEY
+from ..database import get_db
+from ..models import models
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
