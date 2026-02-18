@@ -108,6 +108,14 @@ export interface CreateProblemRequest {
 
 export type UserRole = 'citizen' | 'inspector' | 'contractor' | 'admin';
 
+export const adminAPI = {
+  getAllUsers: (): Promise<{ data: User[] }> => 
+    api.get('/admin/users'),
+  
+  updateUserRole: (data: { user_id: number; new_role: string }): Promise<{ data: User }> =>
+    api.put('/admin/users/role', data),
+};
+
 export interface User {
   id: number;
   name: string;

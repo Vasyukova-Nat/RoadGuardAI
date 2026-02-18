@@ -72,6 +72,16 @@ const Header: React.FC = () => {
                 Добавить проблему
               </Button>
               
+              {currentUser.role === 'admin' && (
+                <Button 
+                  color="inherit" 
+                  onClick={() => navigate('/admin')}
+                  variant={isActive('/admin') ? 'outlined' : 'text'}
+                >
+                  Админ панель
+                </Button>
+              )}
+
               <Button 
                 color="inherit" 
                 onClick={() => navigate('/profile')}

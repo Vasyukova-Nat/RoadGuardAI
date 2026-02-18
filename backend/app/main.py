@@ -130,6 +130,10 @@ class ImageAnalysisResponse(BaseModel):
     dominant_type: Optional[str] = None
     confidence: Optional[float] = None
 
+class UpdateUserRoleRequest(BaseModel):
+    user_id: int
+    new_role: UserRole
+
 def require_admin(current_user: User = Depends(get_current_user)): 
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -326,6 +330,32 @@ def logout(logout_data: LogoutRequest, db: Session = Depends(get_db)):
 @app.get("/auth/me", response_model=UserResponse)
 def get_current_user_info(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@app.put("/admin/users/role", response_model=UserResponse)
+def update_user_role(
+    role_data: UpdateUserRoleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)  # только админ
+):
+    """Изменение роли пользователя"""
+    user = db.query(models.User).filter(models.User.id == role_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.role = role_data.new_role
+    db.commit()
+    db.refresh(user)
+    
+    return user
+
+@app.get("/admin/users", response_model=list[UserResponse])
+def get_all_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)  # только админ
+):
+    """Получение списка всех пользователей"""
+    users = db.query(models.User).all()
+    return users
 
 @app.post("/api/analyze-image", response_model=ImageAnalysisResponse)
 async def analyze_image(

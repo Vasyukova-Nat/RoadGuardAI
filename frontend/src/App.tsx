@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import Profile from './components/Profile/Profile'; 
 import LoginForm from './components/LoginForm/LoginForm';
 import RegisterForm from './components/RegisterForm/RegisterForm';
+import AdminPanel from './components/AdminPanel/AdminPanel';
 import { useAuthStore } from './store/authStore';
 import './App.css';
 
@@ -33,7 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
-  return <>{children}</>;
+  return <>{children}</>; // защищенный компонент
 };
 
 const AuthRedirect: React.FC = () => {
@@ -107,6 +108,14 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute>
+                    <AdminPanel />
                   </ProtectedRoute>
                 } 
               />
