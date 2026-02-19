@@ -11,6 +11,11 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (config.data instanceof FormData) { // для FormData не устанавливаем Content-Type, браузер сделает это сам
+    delete config.headers['Content-Type'];
+  }
+
   return config;
 });
 
@@ -81,7 +86,7 @@ api.interceptors.response.use(
   }
 );
 
-export type ProblemType = 'pothole' | 'crack' | 'manhole' | 'other';
+export type ProblemType = 'long_crack' | 'transverse_crack' | 'alligator_crack' | 'pothole' | 'manhole' | 'other';
 export type ProblemStatus = 'new' | 'in_progress' | 'resolved' | 'closed';
 
 export interface Problem {
@@ -103,12 +108,20 @@ export interface CreateProblemRequest {
 
 export type UserRole = 'citizen' | 'inspector' | 'contractor' | 'admin';
 
+export const adminAPI = {
+  getAllUsers: (): Promise<{ data: User[] }> => 
+    api.get('/admin/users'),
+  
+  updateUserRole: (data: { user_id: number; new_role: string }): Promise<{ data: User }> =>
+    api.put('/admin/users/role', data),
+};
+
 export interface User {
   id: number;
   name: string;
   email: string;
-  role: UserRole;
-  organization: string;
+  role: UserRole;  
+  organization: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -123,6 +136,7 @@ export interface RegisterRequest {
   name: string;
   password: string;
   role: string;
+  organization?: string;
 }
 
 export interface AuthResponse {
@@ -151,6 +165,20 @@ export interface Activity {
   address: string;
 }
 
+export interface DefectDetection {
+  type: ProblemType;
+  confidence: number;
+  bbox: [number, number, number, number]; // [x1, y1, x2, y2]
+  class_name: string; // D00, D10 и т.д
+}
+
+export interface ImageAnalysisResponse {
+  defects: DefectDetection[];
+  detected_types: ProblemType[];
+  dominant_type: ProblemType | null;
+  confidence: number | null;
+}
+
 export const problemsAPI = {
   getProblems: (): Promise<{ data: Problem[] }> => 
     api.get('/problems'),
@@ -162,7 +190,26 @@ export const problemsAPI = {
     api.delete(`/problems/${id}`),
 
   updateProblemStatus: (id: number, status: ProblemStatus): Promise<{ data: Problem }> => 
-    api.put(`/problems/${id}/status`, null, { params: { status } })
+    api.put(`/problems/${id}/status`, null, { params: { status } }),
+
+  analyzeImage: (imageFile: File): Promise<{ data: ImageAnalysisResponse }> => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return api.post('/api/analyze-image', formData, {
+      headers: {
+        ...headers,
+        // для FormData браузер сам установит правильный Content-Type
+      },
+    });
+  }
 };
 
 export const authAPI = {

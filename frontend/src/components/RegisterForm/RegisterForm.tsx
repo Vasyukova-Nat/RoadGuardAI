@@ -19,6 +19,7 @@ const RegisterForm: React.FC = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('citizen');
+  const [organization, setOrganization] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -37,7 +38,8 @@ const RegisterForm: React.FC = () => {
     }
     
     try {
-      await register(email, name, password, role);
+      const orgValue = organization.trim() === '' ? undefined : organization;
+      await register(email, name, password, role, orgValue);
       navigate('/'); // перенаправляет на / после регистрации
     } catch (err: any) {
       if (err.response?.data?.detail) {
@@ -86,7 +88,7 @@ const RegisterForm: React.FC = () => {
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Роль</InputLabel>
             <Select
-              value={role}
+              value={role} 
               label="Роль"
               onChange={(e) => setRole(e.target.value)}
             >
@@ -97,6 +99,16 @@ const RegisterForm: React.FC = () => {
             </Select>
           </FormControl>
           
+          <TextField
+            fullWidth
+            label="Организация (необязательно)"
+            // type="organization"
+            value={organization}
+            onChange={(e) => setOrganization(e.target.value)}
+            sx={{ mb: 2 }}
+            helperText="Заполните, если вы инспектор, подрядчик или администратор"
+          />
+
           <TextField
             fullWidth
             label="Пароль (минимум 5 символов)"

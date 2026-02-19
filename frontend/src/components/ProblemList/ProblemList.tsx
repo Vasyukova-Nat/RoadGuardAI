@@ -92,8 +92,10 @@ function ProblemList() {
 
   const getTypeText = (type: ProblemType) => {
     switch (type) {
+      case 'long_crack': return 'Продольная трещина';
+      case 'transverse_crack': return 'Поперечная трещина';
+      case 'alligator_crack': return 'Аллигаторная трещина';
       case 'pothole': return 'Яма';
-      case 'crack': return 'Трещина';
       case 'manhole': return 'Люк';
       case 'other': return 'Другое';
       default: return type;
