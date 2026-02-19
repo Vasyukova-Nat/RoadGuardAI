@@ -95,13 +95,21 @@ def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_d
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     
-    # new_refresh_token = create_refresh_token()
-    # revoke_refresh_token(refresh_data.refresh_token, db)
-    # save_refresh_token(user.id, new_refresh_token)
+    new_refresh_token = create_refresh_token()
+    revoke_refresh_token(refresh_data.refresh_token, db)
+    
+    refresh_token_expires = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    db_refresh_token = models.RefreshToken(
+        user_id=user.id,
+        token=new_refresh_token,
+        expires_at=refresh_token_expires
+    )
+    db.add(db_refresh_token)
+    db.commit()
 
     return {
         "access_token": access_token, 
-        "refresh_token": refresh_data.refresh_token,  # Возвращаем тот же refresh токен
+        "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
 
