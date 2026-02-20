@@ -10,7 +10,7 @@ from .auth import require_admin, require_admin_or_contractor, get_current_user
 
 router = APIRouter(prefix="/problems", tags=["problems"])
 
-@router.post("/problems", response_model=ProblemResponse)
+@router.post("", response_model=ProblemResponse)
 def create_problem(problem: ProblemCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Создать новую проблему"""
     try:
@@ -34,7 +34,7 @@ def create_problem(problem: ProblemCreate, current_user: models.User = Depends(g
         print(f"Error type: {type(e)}")   
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-@router.put("/problems/{problem_id}/status")  
+@router.put("/{problem_id}/status")  
 def update_problem_status(problem_id: int, status: ProblemStatus, db: Session = Depends(get_db), user: models.User = Depends(require_admin_or_contractor)):
     """Обновить статус проблемы"""
     problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
@@ -46,7 +46,7 @@ def update_problem_status(problem_id: int, status: ProblemStatus, db: Session = 
     db.refresh(problem)
     return problem
 
-@router.get("/problems", response_model=list[ProblemResponse])
+@router.get("", response_model=list[ProblemResponse])
 def get_problems(db: Session = Depends(get_db)):
     """Получить список всех проблем"""
     try:
@@ -56,7 +56,7 @@ def get_problems(db: Session = Depends(get_db)):
         print(f"Error in GET /problems: {str(e)}")  
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-@router.get("/problems/{problem_id}", response_model=ProblemResponse)
+@router.get("/{problem_id}", response_model=ProblemResponse)
 def get_problem(problem_id: int, db: Session = Depends(get_db)):
     """Получить проблему по ID"""
     problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
@@ -64,7 +64,7 @@ def get_problem(problem_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Problem not found")
     return problem
 
-@router.delete("/problems/{problem_id}")
+@router.delete("/{problem_id}")
 def delete_problem(problem_id: int, db: Session = Depends(get_db), user: User = Depends(require_admin)):
     """Удалить проблему по ID (только для админов)"""
     problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()

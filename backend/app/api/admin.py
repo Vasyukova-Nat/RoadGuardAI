@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import models
 from ..schemas.schemas import UserResponse, UpdateUserRoleRequest
-from ..models import User
+from ..models import models
+from ..models.models import User
 from .auth import require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-@router.put("/admin/users/role", response_model=UserResponse)
+@router.put("/users/role", response_model=UserResponse)
 def update_user_role(
     role_data: UpdateUserRoleRequest,
     db: Session = Depends(get_db),
@@ -25,7 +25,7 @@ def update_user_role(
     
     return user
 
-@router.get("/admin/users", response_model=list[UserResponse])
+@router.get("/users", response_model=list[UserResponse])
 def get_all_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)  # только админ
