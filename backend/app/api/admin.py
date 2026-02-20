@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas.schemas import UserResponse, UpdateUserRoleRequest
+from ..repositories.user_repo import UserRepository
 from ..models import models
 from ..models.models import User
 from .auth import require_admin
@@ -15,14 +16,10 @@ def update_user_role(
     current_user: User = Depends(require_admin)  # только админ
 ):
     """Изменение роли пользователя"""
-    user = db.query(models.User).filter(models.User.id == role_data.user_id).first()
+    repo = UserRepository(db)
+    user = repo.update_role(role_data.user_id, role_data.new_role)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    user.role = role_data.new_role
-    db.commit()
-    db.refresh(user)
-    
     return user
 
 @router.get("/users", response_model=list[UserResponse])
@@ -31,5 +28,5 @@ def get_all_users(
     current_user: User = Depends(require_admin)  # только админ
 ):
     """Получение списка всех пользователей"""
-    users = db.query(models.User).all()
-    return users
+    repo = UserRepository(db)
+    return repo.get_all()

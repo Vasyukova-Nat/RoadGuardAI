@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from ..schemas.schemas import LoginRequest, LogoutRequest, RefreshTokenRequest, Token, UserCreate, UserResponse
+from ..repositories.user_repo import UserRepository
 from ..database import get_db
 from ..models import models
 from ..models.models import User, UserRole
@@ -22,29 +23,22 @@ def require_admin_or_contractor(current_user: models.User = Depends(get_current_
 
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
-    if db_user:
+    """Регистрация пользователя"""
+    repo = UserRepository(db)
+
+    if repo.get_by_email(user.email):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     if len(user.password) < 5:
         raise HTTPException(status_code=400, detail="Password must be at least 5 characters long")
     
     hashed_password = get_password_hash(user.password)
-    db_user = models.User(
-        email=user.email,
-        name=user.name,
-        hashed_password=hashed_password,
-        role=user.role,
-        organization=user.organization
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    return repo.create(user, hashed_password)
 
 @router.post("/login", response_model=Token)
 def login(login_data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == login_data.email).first()
+    """Вход в систему"""
+    user = UserRepository(db).get_by_email(login_data.email)
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

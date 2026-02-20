@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from ..services.ml_service import ml_service
 from ..core.security import get_current_user
-from ..models import models
 from ..models.models import User
 from ..schemas.schemas import ImageAnalysisResponse
 
