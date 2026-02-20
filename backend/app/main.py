@@ -4,12 +4,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import shutil
 from .models import models
-from .models.models import ProblemStatus, User, UserRole
-from .schemas.schemas import DefectDetection, ImageAnalysisResponse, ProblemCreate, ProblemResponse, UpdateUserRoleRequest, UserResponse
+from .schemas.schemas import DefectDetection, ImageAnalysisResponse
 from .database import get_db, engine
 from tempfile import NamedTemporaryFile
-from .api import auth
-from .api.auth import require_admin, require_admin_or_contractor, get_current_user
+from .api import auth, admin, problems
+from .core.security import get_current_user
 import os
 import torch
 import torch.serialization
@@ -31,7 +30,6 @@ def disable_weights_only_check(): # безопасная загрузка ней
         yield
     finally:
         torch.load = original_load
-
 
 MODEL_PATH = r"C:\Users\lucky\Desktop\РПЦ\RoadGuardAI\ml_module\roadguard_models\v2\weights\best.pt"
 with disable_weights_only_check():
@@ -66,6 +64,9 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(problems.router)
+app.include_router(admin.router)
+# app.include_router(ml.router)
 
 def map_model_class_to_problem_type(class_name: str) -> str: # маппинг
     mapping = {
@@ -94,97 +95,6 @@ def health_check(db: Session = Depends(get_db)):
         }
     except Exception as e:
         return {"status": "unhealthy", "database": "error", "error": str(e)}
-
-@app.post("/problems", response_model=ProblemResponse)
-def create_problem(problem: ProblemCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Создать новую проблему"""
-    try:
-        db_problem = models.Problem(
-            address=problem.address,
-            description=problem.description,
-            type=problem.type,
-            reporter_id=current_user.id,
-            is_from_inspector=(current_user.role == UserRole.INSPECTOR)
-        )
-
-        db.add(db_problem)
-        db.commit()
-        db.refresh(db_problem)
-
-        return db_problem
-    
-    except Exception as e:
-        db.rollback()
-        print(f"Error creating problem: {str(e)}") 
-        print(f"Error type: {type(e)}")   
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-@app.put("/problems/{problem_id}/status")  
-def update_problem_status(problem_id: int, status: ProblemStatus, db: Session = Depends(get_db), user: models.User = Depends(require_admin_or_contractor)):
-    """Обновить статус проблемы"""
-    problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    
-    problem.status = status
-    db.commit()
-    db.refresh(problem)
-    return problem
-
-@app.get("/problems", response_model=list[ProblemResponse])
-def get_problems(db: Session = Depends(get_db)):
-    """Получить список всех проблем"""
-    try:
-        problems = db.query(models.Problem).all()
-        return problems
-    except Exception as e:
-        print(f"Error in GET /problems: {str(e)}")  
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-@app.get("/problems/{problem_id}", response_model=ProblemResponse)
-def get_problem(problem_id: int, db: Session = Depends(get_db)):
-    """Получить проблему по ID"""
-    problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    return problem
-
-@app.delete("/problems/{problem_id}")
-def delete_problem(problem_id: int, db: Session = Depends(get_db), user: User = Depends(require_admin)):
-    """Удалить проблему по ID (только для админов)"""
-    problem = db.query(models.Problem).filter(models.Problem.id == problem_id).first()
-    if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    
-    db.delete(problem)
-    db.commit()
-    return {"message": "Problem deleted successfully"}
-
-@app.put("/admin/users/role", response_model=UserResponse)
-def update_user_role(
-    role_data: UpdateUserRoleRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)  # только админ
-):
-    """Изменение роли пользователя"""
-    user = db.query(models.User).filter(models.User.id == role_data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    user.role = role_data.new_role
-    db.commit()
-    db.refresh(user)
-    
-    return user
-
-@app.get("/admin/users", response_model=list[UserResponse])
-def get_all_users(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)  # только админ
-):
-    """Получение списка всех пользователей"""
-    users = db.query(models.User).all()
-    return users
 
 @app.post("/api/analyze-image", response_model=ImageAnalysisResponse)
 async def analyze_image(
