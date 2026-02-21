@@ -50,7 +50,3 @@ def health_check(db: Session = Depends(get_db)):
         }
     except Exception as e:
         return {"status": "unhealthy", "database": "error", "error": str(e)}
-    
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
