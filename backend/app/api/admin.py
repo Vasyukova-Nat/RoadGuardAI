@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas.schemas import UserResponse, UpdateUserRoleRequest
 from ..repositories.user_repo import UserRepository
-from ..models import models
 from ..models.models import User
 from .auth import require_admin
 

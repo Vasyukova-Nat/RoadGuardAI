@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from ..repositories.user_repo import UserRepository
-from ..repositories.token_repo import TokenRepository
+from ..repositories.refresh_token_repo import TokenRepository
 from ..core.security import verify_password, create_access_token, create_refresh_token
 from ..core.config import ACCESS_TOKEN_EXPIRE_MINUTES
 from datetime import timedelta

@@ -5,7 +5,6 @@ from ..core.config import REFRESH_TOKEN_EXPIRE_DAYS
 
 class TokenRepository:
     """Работа с refresh токенами в БД"""
-    
     def __init__(self, db: Session):
         self.db = db
 

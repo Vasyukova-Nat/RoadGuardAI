@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from .. import models
 from ..models.models import User
 from ..schemas.schemas import UserCreate
 
@@ -38,5 +37,3 @@ class UserRepository:
             self.db.refresh(user)
         return user
         
-
-    
