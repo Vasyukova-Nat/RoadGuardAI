@@ -38,7 +38,7 @@ def create_refresh_token():
     return str(uuid.uuid4())
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # тут получение пользователя из токена
+    # Получение пользователя из токена
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -56,26 +56,3 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     if user is None:
         raise credentials_exception
     return user
-
-def verify_refresh_token(token: str, db: Session): 
-    refresh_token = db.query(models.RefreshToken).filter(
-        models.RefreshToken.token == token,
-        models.RefreshToken.is_revoked == False,
-        models.RefreshToken.expires_at > datetime.now(timezone.utc)
-    ).first()
-    
-    if not refresh_token:
-        return None
-    
-    return refresh_token.user_id
-
-def revoke_refresh_token(token: str, db: Session): # revoke - отозвать
-    refresh_token = db.query(models.RefreshToken).filter(
-        models.RefreshToken.token == token
-    ).first()
-    
-    if refresh_token:
-        refresh_token.is_revoked = True
-        db.commit()
-    
-    return refresh_token
