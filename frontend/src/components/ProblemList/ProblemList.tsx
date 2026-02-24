@@ -12,10 +12,17 @@ import {
   Box,
   Button,
   CircularProgress,
-  Alert
+  Alert,
+  FormControl,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
 import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
+import ProblemFilters, { FilterParams } from './ProblemFilters';
+import { useSearchParams } from 'react-router-dom';
+import { Pagination, Stack } from '@mui/material';
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -24,9 +31,45 @@ function ProblemList() {
 
   const currentUser = useAuthStore((state) => state.currentUser);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+
+  // Инициализация фильтров из URL
+  const [filters, setFilters] = useState<FilterParams>({
+    status: searchParams.get('status') || 'all',
+    type: searchParams.get('type') || 'all',
+    is_from_inspector: searchParams.get('inspector') === 'true' ? true : 
+                      searchParams.get('inspector') === 'false' ? false : null,
+    search: searchParams.get('search') || '',
+    sort_by: searchParams.get('sort_by') || 'created_at',
+    sort_order: (searchParams.get('sort_order') as 'asc' | 'desc') || 'desc',
+    page: Number(searchParams.get('page')) || 1,
+    limit: Number(searchParams.get('limit')) || 10
+  });
+
+  // Сохраняем фильтры в URL при изменении
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    
+    if (filters.status !== 'all') params.status = filters.status;
+    if (filters.type !== 'all') params.type = filters.type;
+    if (filters.is_from_inspector !== null) {
+      params.inspector = filters.is_from_inspector.toString();
+    }
+    if (filters.search) params.search = filters.search;
+    if (filters.sort_by !== 'created_at') params.sort_by = filters.sort_by;
+    if (filters.sort_order !== 'desc') params.sort_order = filters.sort_order;
+    if (filters.page !== 1) params.page = filters.page.toString();
+    if (filters.limit !== 10) params.limit = filters.limit.toString();
+    
+    setSearchParams(params);
+  }, [filters, setSearchParams]);
+
   useEffect(() => {
     loadProblems();
-  }, []);
+  }, [filters]); 
+  // Завис-ть от filters дает автом-ское обновл-е страницы при фильтрах
 
   const canDeleteProblem = currentUser?.role === 'admin'; // Только админ может удалять проблемы
   const canChangeStatus = currentUser?.role === 'admin' || currentUser?.role === 'contractor'; // Менять статус могут подрядчики и админы
@@ -36,10 +79,27 @@ function ProblemList() {
   };
 
   const loadProblems = async (): Promise<void> => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await problemsAPI.getProblems();
-      setProblems(response.data);
+      const params: any = {
+        page: filters.page,
+        limit: filters.limit,
+        sort_by: filters.sort_by,
+        sort_order: filters.sort_order
+      };
+      
+      if (filters.status !== 'all') params.status = filters.status;
+      if (filters.type !== 'all') params.type = filters.type;
+      if (filters.is_from_inspector !== null) {
+        params.is_from_inspector = filters.is_from_inspector;
+      }
+      if (filters.search) params.search = filters.search;
+      
+      const response = await problemsAPI.getProblems(params);
+      
+      setProblems(response.data.items);
+      setTotalItems(response.data.total);
+      setTotalPages(response.data.total_pages);
       setError(null);
     } catch (error) {
       console.error('Error loading problems:', error);
@@ -47,6 +107,31 @@ function ProblemList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: 'all',
+      type: 'all',
+      is_from_inspector: null,
+      search: '',
+      sort_by: 'created_at',
+      sort_order: 'desc',
+      page: 1,
+      limit: 10
+    });
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setFilters(prev => ({ ...prev, page: value }));
+  };
+
+  const handleLimitChange = (event: SelectChangeEvent) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      limit: Number(event.target.value),
+      page: 1 
+    }));
   };
 
   const handleDelete = async (id: number): Promise<void> => {
@@ -115,6 +200,12 @@ function ProblemList() {
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <CircularProgress />
         <Typography sx={{ mt: 2 }}>Загрузка проблем...</Typography>
+
+        <ProblemFilters
+          filters={filters}
+          onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
+          onClearFilters={clearFilters}
+        />
       </Box>
     );
   }
@@ -138,6 +229,12 @@ function ProblemList() {
         Список дорожных проблем
       </Typography>
       
+      <ProblemFilters
+        filters={filters}
+        onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
+        onClearFilters={clearFilters}
+      />
+
       <Paper elevation={3}>
         <TableContainer>
           <Table>
@@ -189,11 +286,9 @@ function ProblemList() {
                   </TableCell>
                   <TableCell>{formatDate(problem.created_at)}</TableCell>
 
-                  {/* Изменение статуса для подрядчиков и админов */}
                   {canChangeStatus && (
                     <TableCell>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {/* Для новых проблем - можно взять в работу либо закрыть */}
                         {problem.status === 'new' && (
                           <>
                             <Button 
@@ -215,7 +310,6 @@ function ProblemList() {
                           </>
                         )}
                         
-                        {/* Для проблем в работе - можно закрыть, отметить решенной или вернуть в новые */}
                         {problem.status === 'in_progress' && (
                           <>
                             <Button 
@@ -245,7 +339,6 @@ function ProblemList() {
                           </>
                         )}
                         
-                        {/* Для решенных проблем - можно закрыть или вернуть в работу */}
                         {problem.status === 'resolved' && (
                           <>
                             <Button 
@@ -267,7 +360,6 @@ function ProblemList() {
                           </>
                         )}
                         
-                        {/* Для закрытых проблем - можно вернуть в работу */}
                         {problem.status === 'closed' && (
                           <Button 
                             color="warning" 
@@ -282,7 +374,6 @@ function ProblemList() {
                     </TableCell>
                   )}
 
-                  {/* Для админов */}
                   {canDeleteProblem && (
                     <TableCell>
                       <Button 
@@ -306,6 +397,38 @@ function ProblemList() {
           Всего проблем: {problems.length}
         </Typography>
       </Box>
+
+      {totalPages > 0 && (
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Всего проблем: {totalItems}
+          </Typography>
+          
+          <Stack direction="row" spacing={2} alignItems="center">
+            <FormControl size="small" sx={{ minWidth: 80 }}>
+              <Select
+                value={filters.limit.toString()}
+                onChange={handleLimitChange}
+              >
+                <MenuItem value={3}>3</MenuItem>
+                <MenuItem value={5}>5</MenuItem>
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={20}>20</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <Pagination
+              count={totalPages}
+              page={filters.page}
+              onChange={handlePageChange}
+              color="primary"
+              showFirstButton
+              showLastButton
+            />
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 }

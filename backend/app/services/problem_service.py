@@ -10,6 +10,19 @@ class ProblemService:
     def get_all_problems(self):
         return self.problem_repo.get_all()
     
+    def get_problems_filtered(self, status, type, is_from_inspector, search, 
+                         sort_by, sort_order, page, limit):
+        return self.problem_repo.get_filtered(
+            status=status,
+            type=type,
+            is_from_inspector=is_from_inspector,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            limit=limit
+        )
+
     def get_problem(self, problem_id: int):
         return self.problem_repo.get_by_id(problem_id)
     
@@ -26,3 +39,4 @@ class ProblemService:
     
     def delete_problem(self, problem_id: int):
         return self.problem_repo.delete(problem_id)
+    

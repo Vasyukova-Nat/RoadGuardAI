@@ -100,6 +100,14 @@ export interface Problem {
   is_from_inspector: boolean;
 }
 
+export interface ProblemsResponse {
+  items: Problem[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
 export interface CreateProblemRequest {
   address: string;
   description?: string | null;
@@ -180,8 +188,8 @@ export interface ImageAnalysisResponse {
 }
 
 export const problemsAPI = {
-  getProblems: (): Promise<{ data: Problem[] }> => 
-    api.get('/problems'),
+  getProblems: (params?: any): Promise<{ data: ProblemsResponse }> => 
+    api.get('/problems', { params }),
   
   createProblem: (problemData: CreateProblemRequest): Promise<{ data: Problem }> => 
     api.post('/problems', problemData),
