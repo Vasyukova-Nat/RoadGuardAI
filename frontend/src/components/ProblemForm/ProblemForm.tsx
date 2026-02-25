@@ -21,11 +21,22 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
-import { problemsAPI, ProblemType, CreateProblemRequest, DefectDetection, ImageAnalysisResponse } from '../../services/types';
+import { problemsAPI, ProblemType, CreateProblemRequest, DefectDetection, ImageAnalysisResponse, Problem } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 
+interface ProblemFormProps {
+  initialData?: Problem | null;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  isEditing?: boolean;
+}
 
-const ProblemForm: React.FC = () => {
+const ProblemForm: React.FC<ProblemFormProps> = ({ 
+  initialData = null,
+  onSuccess,
+  onCancel,
+  isEditing = false 
+}) => {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.currentUser);
   
@@ -51,6 +62,14 @@ const ProblemForm: React.FC = () => {
       navigate('/');
     }
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    if (initialData) {
+      setProblemType(initialData.type);
+      setAddress(initialData.address);
+      setDescription(initialData.description || '');
+    }
+  }, [initialData]);
 
   const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
@@ -156,7 +175,7 @@ const ProblemForm: React.FC = () => {
 
   const handleSubmit = async (): Promise<void> => {
     if (!address.trim()) {
-      setMessage({ text: 'Пожалуйста, укажите адрес', type: 'error' });
+      setMessage({ text: 'Укажите адрес', type: 'error' });
       return;
     }
     
@@ -168,26 +187,35 @@ const ProblemForm: React.FC = () => {
         type: problemType
       };
 
-      await problemsAPI.createProblem(problemData);
+      if (isEditing && initialData) {
+        await problemsAPI.updateProblem(initialData.id, problemData);
+        setMessage({ text: 'Проблема обновлена!', type: 'success' });
+      } else {
+        await problemsAPI.createProblem(problemData);
+        setMessage({ text: 'Проблема отправлена!', type: 'success' });
+      }
       
-      setMessage({ text: 'Проблема успешно отправлена!', type: 'success' });
+      if (!isEditing) { // очистка формы
+        setPhoto(null);
+        setPhotoFile(null);
+        setAddress('');
+        setDescription('');
+        setAnalysisResult(null);
+        setUseAiSuggestion(false);
+      }
       
-      setPhoto(null); // очищаем форму
-      setPhotoFile(null);
-      setProblemType('pothole');
-      setAddress('');
-      setDescription('');
-      setAnalysisResult(null);
-      setUseAiSuggestion(false);
-      setDetectedDefects([]);
+      if (onSuccess) {
+        onSuccess();
+      }
       
     } catch (error: any) {
-      console.error('Error creating problem:', error);
-      if (error.response?.status === 401) {
-        setMessage({ text: 'Вы не авторизованы. Войдите в систему.', type: 'error' });
-      } else {
-        setMessage({ text: 'Ошибка при отправке проблемы', type: 'error' });
-      }
+      console.error('Ошибка:', error);
+      setMessage({ 
+        text: error.response?.status === 401 
+          ? 'Требуется авторизация' 
+          : 'Ошибка отправки', 
+        type: 'error' 
+      });
     } finally {
       setLoading(false);
     }
@@ -215,7 +243,7 @@ const ProblemForm: React.FC = () => {
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          Сообщить о проблеме
+          {isEditing ? `Редактировать проблему #${initialData?.id}` : 'Сообщить о проблеме'}
         </Typography>
 
         <Box sx={{ mb: 3 }}>
@@ -248,10 +276,6 @@ const ProblemForm: React.FC = () => {
           {/* Отображение фото с результатами анализа */}
           {photo && (
             <Box sx={{ mt: 3, position: 'relative' }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Результаты анализа нейросети:
-              </Typography>
-              
               <Box sx={{ position: 'relative', display: 'inline-block' }}>
                 <canvas
                   ref={canvasRef}
@@ -413,14 +437,23 @@ const ProblemForm: React.FC = () => {
           disabled={analyzing}
         />
 
+        {isEditing && onCancel && (
+          <Button
+            variant="outlined"
+            onClick={onCancel}
+            sx={{ mr: 2 }}
+          >
+            Отмена
+          </Button>
+        )}
+
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={!address.trim() || loading || analyzing}
-          fullWidth
-          size="large"
+          disabled={!address.trim() || loading}
+          type="submit"
         >
-          {loading ? 'Отправка...' : `Отправить проблему`}
+          {loading ? <CircularProgress size={24} /> : (isEditing ? 'Сохранить' : 'Отправить')}
         </Button>
       </Paper>
     </Box>

@@ -90,6 +90,19 @@ class ProblemRepository:
         self.db.refresh(db_problem)
         return db_problem
 
+    def update(self, problem_id: int, address: str, description: str, type: ProblemType):
+        problem = self.get_by_id(problem_id)
+        if not problem:
+            return None
+        
+        problem.address = address
+        problem.description = description
+        problem.type = type
+        
+        self.db.commit()
+        self.db.refresh(problem)
+        return problem
+
     def update_status(self, problem_id: int, status: ProblemStatus):
         problem = self.get_by_id(problem_id)
         if problem:

@@ -16,13 +16,18 @@ import {
   FormControl,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  IconButton
 } from '@mui/material';
 import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 import ProblemFilters, { FilterParams } from './ProblemFilters';
 import { useSearchParams } from 'react-router-dom';
 import { Pagination, Stack } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { Dialog, DialogContent } from '@mui/material';
+import ProblemForm from '../ProblemForm/ProblemForm';
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -34,6 +39,9 @@ function ProblemList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalItems, setTotalItems] = useState<number>(0);
+
+  const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Инициализация фильтров из URL
   const [filters, setFilters] = useState<FilterParams>({
@@ -146,6 +154,21 @@ function ProblemList() {
     }
   };
 
+  const handleEditClick = (problem: Problem) => {
+    setEditingProblem(problem);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
+    setEditingProblem(null);
+  };
+
+  const handleEditSuccess = () => {
+    handleEditClose();
+    loadProblems(); // перезагружаем список
+  };
+
   const getStatusColor = (status: ProblemStatus) => { 
     switch (status) {
       case 'new': return 'error';      
@@ -249,7 +272,7 @@ function ProblemList() {
                 <TableCell><strong>Статус</strong></TableCell>
                 <TableCell><strong>Дата создания</strong></TableCell>
                 {canChangeStatus && <TableCell><strong>Действие</strong></TableCell>}
-                {canDeleteProblem && <TableCell><strong>Удалить</strong></TableCell>}
+                {canDeleteProblem && <TableCell><strong>Изменить</strong></TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -376,13 +399,24 @@ function ProblemList() {
 
                   {canDeleteProblem && (
                     <TableCell>
-                      <Button 
-                        color="error" 
-                        size="small"
-                        onClick={() => handleDelete(problem.id)}
-                      >
-                        Удалить
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton 
+                          color="primary" 
+                          size="small"
+                          onClick={() => handleEditClick(problem)}
+                          title="Редактировать"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          color="error" 
+                          size="small"
+                          onClick={() => handleDelete(problem.id)}
+                          title="Удалить"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
                     </TableCell>
                   )}
                 </TableRow>
@@ -429,6 +463,24 @@ function ProblemList() {
           </Stack>
         </Box>
       )}
+
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={handleEditClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogContent>
+          {editingProblem && (
+            <ProblemForm 
+              initialData={editingProblem}
+              onSuccess={handleEditSuccess}
+              onCancel={handleEditClose}
+              isEditing={true}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

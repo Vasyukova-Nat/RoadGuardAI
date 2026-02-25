@@ -20,6 +20,29 @@ def create_problem(
     service = ProblemService(db)
     return service.create_problem(problem, current_user)
 
+@router.put("/{problem_id}", response_model=ProblemResponse)
+def update_problem(
+    problem_id: int,
+    problem: ProblemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить существующую проблему"""
+    service = ProblemService(db)
+    
+    existing_problem = service.get_problem(problem_id)
+    if not existing_problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    updated_problem = service.update_problem(
+        problem_id=problem_id,
+        address=problem.address,
+        description=problem.description,
+        type=problem.type
+    )
+    
+    return updated_problem
+
 @router.put("/{problem_id}/status", response_model=ProblemResponse)
 def update_problem_status(
     problem_id: int,
