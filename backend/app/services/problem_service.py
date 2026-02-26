@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from ..models.models import UserRole
+from ..models.models import ProblemType, UserRole
 from ..repositories.problem_repo import ProblemRepository
 
 class ProblemService:
@@ -10,6 +10,19 @@ class ProblemService:
     def get_all_problems(self):
         return self.problem_repo.get_all()
     
+    def get_problems_filtered(self, status, type, is_from_inspector, search, 
+                         sort_by, sort_order, page, limit):
+        return self.problem_repo.get_filtered(
+            status=status,
+            type=type,
+            is_from_inspector=is_from_inspector,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            limit=limit
+        )
+
     def get_problem(self, problem_id: int):
         return self.problem_repo.get_by_id(problem_id)
     
@@ -21,8 +34,17 @@ class ProblemService:
             is_from_inspector
         )
     
+    def update_problem(self, problem_id: int, address: str, description: str, type: ProblemType):
+        return self.problem_repo.update(
+            problem_id=problem_id,
+            address=address,
+            description=description,
+            type=type
+    )
+
     def update_status(self, problem_id: int, status):
         return self.problem_repo.update_status(problem_id, status)
     
     def delete_problem(self, problem_id: int):
         return self.problem_repo.delete(problem_id)
+    

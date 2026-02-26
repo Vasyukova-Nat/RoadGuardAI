@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Select, MenuItem, Box, Alert 
 } from '@mui/material';
 import { adminAPI, User } from '../../services/types';
+import { useAuthStore } from '../../store/authStore';
 
 const AdminPanel: React.FC = () => {
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      navigate('/');
+    }
+
     loadUsers();
-  }, []);
+  }, [currentUser, navigate]);
 
   const loadUsers = async () => {
     try {

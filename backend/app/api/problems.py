@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Optional
 from ..database import get_db
-from ..schemas.schemas import ProblemCreate, ProblemResponse
+from ..schemas.schemas import ProblemCreate, ProblemResponse, PaginatedProblemResponse
 from ..core.security import get_current_user
-from ..models.models import User
+from ..models.models import User, ProblemStatus, ProblemType
 from ..services.problem_service import ProblemService
 from .auth import require_admin, require_admin_or_contractor, get_current_user
 
@@ -20,6 +20,29 @@ def create_problem(
     service = ProblemService(db)
     return service.create_problem(problem, current_user)
 
+@router.put("/{problem_id}", response_model=ProblemResponse)
+def update_problem(
+    problem_id: int,
+    problem: ProblemCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить существующую проблему"""
+    service = ProblemService(db)
+    
+    existing_problem = service.get_problem(problem_id)
+    if not existing_problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    updated_problem = service.update_problem(
+        problem_id=problem_id,
+        address=problem.address,
+        description=problem.description,
+        type=problem.type
+    )
+    
+    return updated_problem
+
 @router.put("/{problem_id}/status", response_model=ProblemResponse)
 def update_problem_status(
     problem_id: int,
@@ -34,11 +57,30 @@ def update_problem_status(
         raise HTTPException(status_code=404, detail="Problem not found")
     return problem
 
-@router.get("", response_model=List[ProblemResponse])
-def get_problems(db: Session = Depends(get_db)):
-    """Получить список всех проблем"""
+@router.get("", response_model=PaginatedProblemResponse)
+def get_problems(
+    db: Session = Depends(get_db),
+    status: Optional[ProblemStatus] = Query(None, description="Фильтр по статусу"),
+    type: Optional[ProblemType] = Query(None, description="Фильтр по типу"),
+    is_from_inspector: Optional[bool] = Query(None, description="Только от инспекторов"),
+    search: Optional[str] = Query(None, description="Поиск по адресу или описанию"),
+    sort_by: str = Query("created_at", description="Поле для сортировки"),
+    sort_order: str = Query("desc", description="Направление сортировки (asc/desc)"),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    limit: int = Query(10, ge=1, le=100, description="Элементов на странице")
+):
+    """Получить список всех проблем (с фильтрацией, сортировкой, пагинацией)"""
     service = ProblemService(db)
-    return service.get_all_problems()
+    return service.get_problems_filtered(
+        status=status,
+        type=type,
+        is_from_inspector=is_from_inspector,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page=page,
+        limit=limit
+    )
 
 @router.get("/{problem_id}", response_model=ProblemResponse)
 def get_problem(problem_id: int, db: Session = Depends(get_db)):

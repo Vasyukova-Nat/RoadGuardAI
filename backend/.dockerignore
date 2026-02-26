@@ -1,0 +1,18 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv
+env
+.env
+.git
+.gitignore
+README.md
+.DS_Store
+.vscode
+.idea
+ml_model/*.pt  # Модель будет подключаться через volume
+__pycache__/
+*.log
+instance/

@@ -100,6 +100,14 @@ export interface Problem {
   is_from_inspector: boolean;
 }
 
+export interface ProblemsResponse {
+  items: Problem[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
 export interface CreateProblemRequest {
   address: string;
   description?: string | null;
@@ -180,17 +188,20 @@ export interface ImageAnalysisResponse {
 }
 
 export const problemsAPI = {
-  getProblems: (): Promise<{ data: Problem[] }> => 
-    api.get('/problems'),
+  getProblems: (params?: any): Promise<{ data: ProblemsResponse }> => 
+    api.get('/problems', { params }),
   
   createProblem: (problemData: CreateProblemRequest): Promise<{ data: Problem }> => 
     api.post('/problems', problemData),
   
-  deleteProblem: (id: number): Promise<void> => 
-    api.delete(`/problems/${id}`),
+  updateProblem: (id: number, problemData: CreateProblemRequest): Promise<{ data: Problem }> => 
+    api.put(`/problems/${id}`, problemData),
 
   updateProblemStatus: (id: number, status: ProblemStatus): Promise<{ data: Problem }> => 
     api.put(`/problems/${id}/status`, null, { params: { status } }),
+
+  deleteProblem: (id: number): Promise<void> => 
+    api.delete(`/problems/${id}`),
 
   analyzeImage: (imageFile: File): Promise<{ data: ImageAnalysisResponse }> => {
     const formData = new FormData();
