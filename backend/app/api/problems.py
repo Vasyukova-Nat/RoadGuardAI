@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile
 from sqlalchemy.orm import Session
 from typing import Optional
 from ..database import get_db
 from ..schemas.schemas import ProblemCreate, ProblemResponse, PaginatedProblemResponse
 from ..core.security import get_current_user
-from ..models.models import User, ProblemStatus, ProblemType
+from ..models.models import User, ProblemStatus, ProblemType, UserRole
 from ..services.problem_service import ProblemService
-from .auth import require_admin, require_admin_or_contractor, get_current_user
+from ..services.image_service import ImageService
+from .auth import require_admin_or_contractor, get_current_user
 
 router = APIRouter(prefix="/problems", tags=["problems"])
 
@@ -16,9 +17,27 @@ def create_problem(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Создать новую проблему"""
+    """Создать проблему без фото"""
     service = ProblemService(db)
     return service.create_problem(problem, current_user)
+
+@router.post("/with-image", response_model=ProblemResponse)
+async def create_problem_with_image(
+    address: str = Form(...),
+    description: Optional[str] = Form(None),
+    type: ProblemType = Form(...),
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Создать проблему с фото"""
+    problem_data = ProblemCreate(address=address, description=description, type=type)
+    service = ProblemService(db)
+    problem = service.create_problem(problem_data, current_user)
+    image_service = ImageService(db)
+    await image_service.upload_image(problem.id, photo, current_user.id)
+    
+    return problem
 
 @router.put("/{problem_id}", response_model=ProblemResponse)
 def update_problem(
@@ -91,14 +110,37 @@ def get_problem(problem_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Problem not found")
     return problem
 
+@router.get("/{problem_id}/images")
+def get_problem_images(
+    problem_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Получить все изображения проблемы"""
+    service = ImageService(db)
+    return service.get_images_for_problem(problem_id)
+
 @router.delete("/{problem_id}")
 def delete_problem(
     problem_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(require_admin)
+    current_user: User = Depends(get_current_user)  
 ):
-    """Удалить проблему (только admin)"""
-    service = ProblemService(db)
-    if not service.delete_problem(problem_id):
+    """Удалить проблему (только admin или создатель)"""
+    problem_service = ProblemService(db)
+    problem = problem_service.get_problem(problem_id)
+    if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
-    return {"message": "Problem deleted successfully"}
+    
+    if current_user.role != UserRole.ADMIN and problem.reporter_id != current_user.id:
+        raise HTTPException(
+            status_code=403, 
+            detail="Недостаточно прав. Только админ или создатель может удалить проблему"
+        )
+    
+    image_service = ImageService(db)
+    image_service.delete_all_problem_images(problem_id)
+
+    if not problem_service.delete_problem(problem_id):
+        raise HTTPException(status_code=404, detail="Problem not found")
+    return {"message": "Проблема и все связанные с ней фото успешно удалены"}

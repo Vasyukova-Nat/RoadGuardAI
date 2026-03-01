@@ -17,6 +17,7 @@ class ProblemResponse(BaseModel):
     created_at: datetime
     reporter_id: int
     is_from_inspector: bool
+    images_count: int = 0
 
     class Config:
         from_attributes = True

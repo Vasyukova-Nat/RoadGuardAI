@@ -98,6 +98,7 @@ export interface Problem {
   created_at: string;
   reporter_id: number;
   is_from_inspector: boolean;
+  images_count?: number;
 }
 
 export interface ProblemsResponse {
@@ -112,6 +113,13 @@ export interface CreateProblemRequest {
   address: string;
   description?: string | null;
   type: ProblemType;
+}
+
+export interface CreateProblemWithImageRequest {
+  address: string;
+  description?: string | null;
+  type: ProblemType;
+  photo?: File; 
 }
 
 export type UserRole = 'citizen' | 'inspector' | 'contractor' | 'admin';
@@ -194,6 +202,18 @@ export const problemsAPI = {
   createProblem: (problemData: CreateProblemRequest): Promise<{ data: Problem }> => 
     api.post('/problems', problemData),
   
+  createProblemWithImage: (problemData: CreateProblemWithImageRequest): Promise<{ data: Problem }> => {
+    const formData = new FormData();
+    formData.append('address', problemData.address);
+    if (problemData.description) formData.append('description', problemData.description);
+    formData.append('type', problemData.type);
+    if (problemData.photo) formData.append('photo', problemData.photo);
+    
+    return api.post('/problems/with-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
   updateProblem: (id: number, problemData: CreateProblemRequest): Promise<{ data: Problem }> => 
     api.put(`/problems/${id}`, problemData),
 
