@@ -1,8 +1,9 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from ..models.models import Problem, ProblemStatus, ProblemType
+from ..models.models import Problem, ProblemStatus, ProblemType, ProblemImage
 from ..schemas.schemas import ProblemCreate
+from ..core.minio_client import minio_client
 
 class ProblemRepository:
     """Работа с проблемами в БД"""
@@ -118,4 +119,17 @@ class ProblemRepository:
             self.db.commit()
             return True
         return False
+    def delete(self, problem_id: int) -> bool:
+        problem = self.get_by_id(problem_id)
+        if not problem:
+            return False
+
+        images = self.db.query(ProblemImage).filter(ProblemImage.problem_id == problem_id).all()
+        
+        for img in images:
+            minio_client.delete_file(img.file_key)
+        
+        self.db.delete(problem) # каскадно удалятся записи в БД
+        self.db.commit()
+        return True
     

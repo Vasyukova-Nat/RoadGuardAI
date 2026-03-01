@@ -98,6 +98,7 @@ class ImageService:
         }
     
     def get_images_for_problem(self, problem_id: int) -> list:
+        """Получает все изображения проблемы с временными ссылками"""
         images = self.image_repo.get_by_problem(problem_id)
         
         result = []
@@ -116,29 +117,23 @@ class ImageService:
         return result
     
     def delete_image(self, image_id: int, user_id: int, is_admin: bool) -> dict:
-        """Удаляет изображение из MinIO и БД"""
+        """Удаляет изображение (проверка прав внутри)"""
         image = self.image_repo.get_by_id(image_id)
         if not image:
             raise HTTPException(status_code=404, detail="Изображение не найдено")
         
         if image.uploaded_by != user_id and not is_admin:
-            raise HTTPException(
-                status_code=403,
-                detail="Недостаточно прав для удаления"
-            )
+            raise HTTPException(status_code=403, detail="Недостаточно прав для удаления")
         
         if not minio_client.delete_file(image.file_key):
-            raise HTTPException(
-                status_code=500,
-                detail="Ошибка удаления файла из хранилища"
-            )
+            raise HTTPException(status_code=500, detail="Ошибка удаления файла из хранилища")
         
         self.image_repo.delete(image_id) # удал. запись из БД
         
         return {"message": "Файл успешно удалён"}
     
     def delete_all_problem_images(self, problem_id: int) -> int:
-        """Удаляет все изображения проблемы (при удалении проблемы)"""
+        """Удаляет все изображения проблемы (без проверки прав, для каскадного удаления)"""
         images = self.image_repo.get_by_problem(problem_id)
         count = 0
         

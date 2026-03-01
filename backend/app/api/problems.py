@@ -4,10 +4,10 @@ from typing import Optional
 from ..database import get_db
 from ..schemas.schemas import ProblemCreate, ProblemResponse, PaginatedProblemResponse
 from ..core.security import get_current_user
-from ..models.models import User, ProblemStatus, ProblemType
+from ..models.models import User, ProblemStatus, ProblemType, UserRole
 from ..services.problem_service import ProblemService
 from ..services.image_service import ImageService
-from .auth import require_admin, require_admin_or_contractor, get_current_user
+from .auth import require_admin_or_contractor, get_current_user
 
 router = APIRouter(prefix="/problems", tags=["problems"])
 
@@ -114,10 +114,23 @@ def get_problem(problem_id: int, db: Session = Depends(get_db)):
 def delete_problem(
     problem_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(require_admin)
+    current_user: User = Depends(get_current_user)  
 ):
-    """Удалить проблему (только admin)"""
-    service = ProblemService(db)
-    if not service.delete_problem(problem_id):
+    """Удалить проблему (только admin или создатель)"""
+    problem_service = ProblemService(db)
+    problem = problem_service.get_problem(problem_id)
+    if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
-    return {"message": "Problem deleted successfully"}
+    
+    if current_user.role != UserRole.ADMIN and problem.reporter_id != current_user.id:
+        raise HTTPException(
+            status_code=403, 
+            detail="Недостаточно прав. Только админ или создатель может удалить проблему"
+        )
+    
+    image_service = ImageService(db)
+    image_service.delete_all_problem_images(problem_id)
+
+    if not problem_service.delete_problem(problem_id):
+        raise HTTPException(status_code=404, detail="Problem not found")
+    return {"message": "Проблема и все связанные с ней фото успешно удалены"}
