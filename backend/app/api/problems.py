@@ -110,6 +110,16 @@ def get_problem(problem_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Problem not found")
     return problem
 
+@router.get("/{problem_id}/images")
+def get_problem_images(
+    problem_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Получить все изображения проблемы"""
+    service = ImageService(db)
+    return service.get_images_for_problem(problem_id)
+
 @router.delete("/{problem_id}")
 def delete_problem(
     problem_id: int,

@@ -48,6 +48,12 @@ class Problem(Base):
     is_from_inspector = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    images = relationship("ProblemImage", back_populates="problem", lazy="select")
+
+    @property
+    def images_count(self):
+        return len(self.images)
+
 class ProblemImage(Base):
     __tablename__ = "problem_images"
     
@@ -60,7 +66,7 @@ class ProblemImage(Base):
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    problem = relationship("Problem", backref="images")  # связи для удобства запросов
+    problem = relationship("Problem", back_populates="images")
     uploader = relationship("User")
 
 class RefreshToken(Base):

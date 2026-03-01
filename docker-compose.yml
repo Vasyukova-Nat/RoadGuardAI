@@ -30,7 +30,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"   # API порт (для приложения)
+      - "9000:9000"   # localhost:9000 → minio:9000
       - "9001:9001"   # Веб-консоль (для админа)
     volumes:
       - minio_data:/data

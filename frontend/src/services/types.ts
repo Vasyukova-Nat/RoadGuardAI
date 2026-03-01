@@ -98,6 +98,7 @@ export interface Problem {
   created_at: string;
   reporter_id: number;
   is_from_inspector: boolean;
+  images_count?: number;
 }
 
 export interface ProblemsResponse {

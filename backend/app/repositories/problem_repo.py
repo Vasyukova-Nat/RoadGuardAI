@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from ..models.models import Problem, ProblemStatus, ProblemType, ProblemImage
 from ..schemas.schemas import ProblemCreate
@@ -26,7 +26,7 @@ class ProblemRepository:
     ):
         """Получение проблем с фильтрацией, сортировкой и пагинацией"""
         
-        query = self.db.query(Problem)
+        query = self.db.query(Problem).options(joinedload(Problem.images))
         
         if status:
             query = query.filter(Problem.status == status)

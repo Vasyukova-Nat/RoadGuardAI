@@ -85,10 +85,7 @@ class MinIOClient:
         try:
             url = self.client.generate_presigned_url(
                 'get_object',
-                Params={
-                    'Bucket': self.bucket_name,
-                    'Key': file_key
-                },
+                Params={'Bucket': self.bucket_name, 'Key': file_key},
                 ExpiresIn=expires_in
             )
             return url

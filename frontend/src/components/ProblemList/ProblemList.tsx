@@ -17,8 +17,12 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogContent,
+  DialogTitle
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 import ProblemFilters, { FilterParams } from './ProblemFilters';
@@ -26,8 +30,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Pagination, Stack } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Dialog, DialogContent } from '@mui/material';
 import ProblemForm from '../ProblemForm/ProblemForm';
+import api from '../../services/types';
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -42,6 +46,9 @@ function ProblemList() {
 
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageOpen, setImageOpen] = useState(false);
 
   // Инициализация фильтров из URL
   const [filters, setFilters] = useState<FilterParams>({
@@ -267,6 +274,7 @@ function ProblemList() {
                 <TableCell><strong>От инспектора?</strong></TableCell>
                 <TableCell><strong>Тип</strong></TableCell>
                 <TableCell><strong>Адрес</strong></TableCell>
+                <TableCell><strong>Фото</strong></TableCell>
                 {currentUser?.role === 'admin' && <TableCell><strong>ID отправителя</strong></TableCell>}
                 <TableCell><strong>Описание</strong></TableCell>
                 <TableCell><strong>Статус</strong></TableCell>
@@ -296,6 +304,28 @@ function ProblemList() {
                   </TableCell>
                   <TableCell>{getTypeText(problem.type)}</TableCell>
                   <TableCell>{problem.address}</TableCell>
+                  <TableCell>
+                    {(problem.images_count || 0) > 0 ? (
+                      <Button 
+                        size="small" 
+                        variant="outlined"
+                        onClick={async () => {
+                          try {
+                            const response = await api.get(`/problems/${problem.id}/images`);
+                            if (response.data.length > 0) {
+                              setSelectedImage(response.data[0].url);  
+                              setImageOpen(true);                       // откр. модальное окно
+                            }
+                          } catch (error) {
+                            console.error('Ошибка загрузки фото:', error);
+                          }
+                        }}
+                      >
+                        фото
+                      </Button>
+                    ) : null}
+                  </TableCell>
+
                   {currentUser?.role === 'admin' && (
                     <TableCell>{problem.reporter_id}</TableCell>
                   )}
@@ -478,6 +508,31 @@ function ProblemList() {
               onCancel={handleEditClose}
               isEditing={true}
             />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog 
+        open={imageOpen} 
+        onClose={() => setImageOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Фото проблемы
+          <IconButton onClick={() => setImageOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedImage && (
+            <Box sx={{ textAlign: 'center' }}>
+              <img 
+                src={selectedImage} 
+                alt="Проблема" 
+                style={{ maxWidth: '100%', maxHeight: '70vh' }} 
+              />
+            </Box>
           )}
         </DialogContent>
       </Dialog>
