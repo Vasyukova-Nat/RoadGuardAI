@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Enum, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from ..database import Base
 import enum
 
@@ -46,6 +47,21 @@ class Problem(Base):
     reporter_id = Column(Integer, nullable=False)
     is_from_inspector = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ProblemImage(Base):
+    __tablename__ = "problem_images"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    problem_id = Column(Integer, ForeignKey("problems.id", ondelete="CASCADE"), nullable=False)
+    file_key = Column(String, nullable=False, unique=True, index=True)
+    original_filename = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=False)  # в байтах
+    content_type = Column(String, nullable=False)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    problem = relationship("Problem", backref="images")  # связи для удобства запросов
+    uploader = relationship("User")
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"

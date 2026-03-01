@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, Form, UploadFile
 from sqlalchemy.orm import Session
 from typing import Optional
 from ..database import get_db
@@ -6,6 +6,7 @@ from ..schemas.schemas import ProblemCreate, ProblemResponse, PaginatedProblemRe
 from ..core.security import get_current_user
 from ..models.models import User, ProblemStatus, ProblemType
 from ..services.problem_service import ProblemService
+from ..services.image_service import ImageService
 from .auth import require_admin, require_admin_or_contractor, get_current_user
 
 router = APIRouter(prefix="/problems", tags=["problems"])
@@ -16,9 +17,27 @@ def create_problem(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Создать новую проблему"""
+    """Создать проблему без фото"""
     service = ProblemService(db)
     return service.create_problem(problem, current_user)
+
+@router.post("/with-image", response_model=ProblemResponse)
+async def create_problem_with_image(
+    address: str = Form(...),
+    description: Optional[str] = Form(None),
+    type: ProblemType = Form(...),
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Создать проблему с фото"""
+    problem_data = ProblemCreate(address=address, description=description, type=type)
+    service = ProblemService(db)
+    problem = service.create_problem(problem_data, current_user)
+    image_service = ImageService(db)
+    await image_service.upload_image(problem.id, photo, current_user.id)
+    
+    return problem
 
 @router.put("/{problem_id}", response_model=ProblemResponse)
 def update_problem(

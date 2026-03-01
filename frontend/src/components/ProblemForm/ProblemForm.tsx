@@ -21,7 +21,7 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
-import { problemsAPI, ProblemType, CreateProblemRequest, DefectDetection, ImageAnalysisResponse, Problem } from '../../services/types';
+import { problemsAPI, ProblemType, DefectDetection, ImageAnalysisResponse, Problem } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 
 interface ProblemFormProps {
@@ -181,21 +181,25 @@ const ProblemForm: React.FC<ProblemFormProps> = ({
     
     setLoading(true);
     try {
-      const problemData: CreateProblemRequest = {
-        address: address.trim(),
-        description: description.trim() || null,
-        type: problemType
-      };
-
       if (isEditing && initialData) {
-        await problemsAPI.updateProblem(initialData.id, problemData);
+        // Редактирование без фото
+        await problemsAPI.updateProblem(initialData.id, {
+          address: address.trim(),
+          description: description.trim() || null,
+          type: problemType
+        });
         setMessage({ text: 'Проблема обновлена!', type: 'success' });
       } else {
-        await problemsAPI.createProblem(problemData);
+        // Создание с фото
+        await problemsAPI.createProblemWithImage({
+          address: address.trim(),
+          description: description.trim() || null,
+          type: problemType,
+          photo: photoFile || undefined
+        });
         setMessage({ text: 'Проблема отправлена!', type: 'success' });
-      }
-      
-      if (!isEditing) { // очистка формы
+        
+        // очистка формы
         setPhoto(null);
         setPhotoFile(null);
         setAddress('');
@@ -204,23 +208,18 @@ const ProblemForm: React.FC<ProblemFormProps> = ({
         setUseAiSuggestion(false);
       }
       
-      if (onSuccess) {
-        onSuccess();
-      }
+      if (onSuccess) onSuccess();
       
     } catch (error: any) {
-      console.error('Ошибка:', error);
       setMessage({ 
-        text: error.response?.status === 401 
-          ? 'Требуется авторизация' 
-          : 'Ошибка отправки', 
+        text: error.response?.status === 401 ? 'Требуется авторизация' : 'Ошибка отправки', 
         type: 'error' 
       });
     } finally {
       setLoading(false);
     }
   };
-
+  
   const getTypeLabel = (type: ProblemType): string => {
     const labels: Record<ProblemType, string> = {
       'long_crack': 'Продольная трещина',
