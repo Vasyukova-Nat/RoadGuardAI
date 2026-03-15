@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Paper,
   Typography,
@@ -17,12 +17,8 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
-  IconButton,
-  Dialog,
-  DialogContent,
-  DialogTitle
+  IconButton
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
 import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 import ProblemFilters, { FilterParams } from './ProblemFilters';
@@ -30,10 +26,12 @@ import { useSearchParams } from 'react-router-dom';
 import { Pagination, Stack } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ProblemForm from '../ProblemForm/ProblemForm';
 import api from '../../services/types';
 import SEO from '../SEO/SEO';
 import { Helmet } from 'react-helmet-async';
+
+const EditProblemDialog = lazy(() => import('./EditProblemDialog')); // Lazy loading для модальных окон
+const ImageViewDialog = lazy(() => import('./ImageViewDialog'));
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -322,17 +320,9 @@ function ProblemList() {
                     <TableCell>#{problem.id}</TableCell>
                     <TableCell>
                       {isFromInspector(problem) ? (
-                        <Chip 
-                          label="+" 
-                          color="success" 
-                          size="small" 
-                        />
+                        <Chip label="+" color="success" size="small" />
                       ) : (
-                        <Chip 
-                          label="-" 
-                          color="default" 
-                          size="small" 
-                        />
+                        <Chip label="-" color="default" size="small" />
                       )}
                     </TableCell>
                     <TableCell>{getTypeText(problem.type)}</TableCell>
@@ -347,7 +337,7 @@ function ProblemList() {
                               const response = await api.get(`/problems/${problem.id}/images`);
                               if (response.data.length > 0) {
                                 setSelectedImage(response.data[0].url);  
-                                setImageOpen(true);                       // откр. модальное окно
+                                setImageOpen(true); // откр. модальное окно
                               }
                             } catch (error) {
                               console.error('Ошибка загрузки фото:', error);
@@ -527,48 +517,22 @@ function ProblemList() {
           </Box>
         )}
 
-        <Dialog 
-          open={editDialogOpen} 
-          onClose={handleEditClose}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogContent>
-            {editingProblem && (
-              <ProblemForm 
-                initialData={editingProblem}
-                onSuccess={handleEditSuccess}
-                onCancel={handleEditClose}
-                isEditing={true}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={<div>Загрузка...</div>}>
+          <EditProblemDialog 
+            open={editDialogOpen}
+            problem={editingProblem}
+            onClose={handleEditClose}
+            onSuccess={handleEditSuccess}
+          />
+        </Suspense>
 
-        <Dialog 
-          open={imageOpen} 
-          onClose={() => setImageOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Фото проблемы
-            <IconButton onClick={() => setImageOpen(false)}>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent dividers>
-            {selectedImage && (
-              <Box sx={{ textAlign: 'center' }}>
-                <img 
-                  src={selectedImage} 
-                  alt="Проблема" 
-                  style={{ maxWidth: '100%', maxHeight: '70vh' }} 
-                />
-              </Box>
-            )}
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={<div>Загрузка...</div>}>
+          <ImageViewDialog 
+            open={imageOpen}
+            imageUrl={selectedImage}
+            onClose={() => setImageOpen(false)}
+          />
+        </Suspense>
       </Box>
     </>
   );
