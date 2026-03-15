@@ -33,6 +33,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ProblemForm from '../ProblemForm/ProblemForm';
 import api from '../../services/types';
 import SEO from '../SEO/SEO';
+import { Helmet } from 'react-helmet-async';
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -254,8 +255,34 @@ function ProblemList() {
     );
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Дорожные проблемы",
+    "description": "Список зарегистрированных проблем на дорогах",
+    "numberOfItems": problems.length,
+    "itemListElement": problems.map((problem, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Service",
+        "name": `Проблема на ${problem.address}`,
+        "description": problem.description || "Повреждение дорожного покрытия",
+        "address": problem.address,
+        "serviceType": problem.type,
+        "datePosted": problem.created_at
+      }
+    }))
+  };
+
   return (
     <>
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      </Helmet>
+
       <SEO 
         title="Список проблем" 
         description="Список зарегистрированных проблем на дорогах" 
