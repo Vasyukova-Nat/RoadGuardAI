@@ -12,6 +12,7 @@ import RegisterForm from './components/RegisterForm/RegisterForm';
 import AdminPanel from './components/AdminPanel/AdminPanel';
 import { useAuthStore } from './store/authStore';
 import './App.css';
+import { HelmetProvider } from 'react-helmet-async';
 
 const theme = createTheme({
   palette: {
@@ -62,12 +63,13 @@ const App: React.FC = () => {
   }
 
   return (
+    <HelmetProvider>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         <div className="App">
           <Header />
-          <main>
+          <main role="main">
             <Routes>
               {/* Публичные маршруты */}
               <Route path="/" element={<Dashboard />} />
@@ -127,6 +129,7 @@ const App: React.FC = () => {
         </div>
       </Router>
     </ThemeProvider>
+    </HelmetProvider>
   );
 };
 

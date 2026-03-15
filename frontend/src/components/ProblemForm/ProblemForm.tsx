@@ -23,6 +23,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import { problemsAPI, ProblemType, DefectDetection, ImageAnalysisResponse, Problem } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
+import SEO from '../SEO/SEO';
 
 interface ProblemFormProps {
   initialData?: Problem | null;
@@ -233,229 +234,235 @@ const ProblemForm: React.FC<ProblemFormProps> = ({
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 800, margin: '0 auto' }}>
-      {message && (
-        <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
-          {message.text}
-        </Alert>
-      )}
-      
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {isEditing ? `Редактировать проблему #${initialData?.id}` : 'Сообщить о проблеме'}
-        </Typography>
+    <> 
+      <SEO 
+        title={isEditing ? "Редактирование проблемы" : "Сообщить о проблеме"} 
+        description={isEditing ? "Редактирование информации о проблеме" : "Сообщить о яме или трещине на дороге"}
+      />
+      <Box sx={{ p: 3, maxWidth: 800, margin: '0 auto' }}>
+        {message && (
+          <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
+            {message.text}
+          </Alert>
+        )}
+        
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isEditing ? `Редактировать проблему #${initialData?.id}` : 'Сообщить о проблеме'}
+          </Typography>
 
-        <Box sx={{ mb: 3 }}>
-          <input
-            accept="image/*"
-            style={{ display: 'none' }}
-            id="photo-upload"
-            type="file"
-            onChange={handlePhotoUpload}
-          />
-          <label htmlFor="photo-upload">
-            <Button
-              variant="outlined"
-              component="span"
-              startIcon={<CloudUploadIcon />}
-              fullWidth
-              disabled={analyzing}
-            >
-              {analyzing ? 'Анализируем изображение...' : 'Загрузить фото дороги'}
-            </Button>
-          </label>
-          
-          {analyzing && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-              <CircularProgress size={20} />
-              <Typography variant="body2">Нейросеть анализирует изображение...</Typography>
-            </Box>
-          )}
-          
-          {/* Отображение фото с результатами анализа */}
-          {photo && (
-            <Box sx={{ mt: 3, position: 'relative' }}>
-              <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                <canvas
-                  ref={canvasRef}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 2  // Canvas поверх изображения
-                  }}
-                />
-
-                <img 
-                  ref={imageRef}
-                  src={photo} 
-                  alt="Preview" 
-                  style={{ 
-                    maxWidth: '100%', 
-                    maxHeight: 400,
-                    borderRadius: '8px',
-                    display: 'block',
-                    position: 'relative',
-                    zIndex: 1
-                  }} 
-                />
+          <Box sx={{ mb: 3 }}>
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="photo-upload"
+              type="file"
+              onChange={handlePhotoUpload}
+            />
+            <label htmlFor="photo-upload">
+              <Button
+                variant="outlined"
+                component="span"
+                startIcon={<CloudUploadIcon />}
+                fullWidth
+                disabled={analyzing}
+              >
+                {analyzing ? 'Анализируем изображение...' : 'Загрузить фото дороги'}
+              </Button>
+            </label>
+            
+            {analyzing && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2">Нейросеть анализирует изображение...</Typography>
               </Box>
+            )}
+            
+            {/* Отображение фото с результатами анализа */}
+            {photo && (
+              <Box sx={{ mt: 3, position: 'relative' }}>
+                <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                  <canvas
+                    ref={canvasRef}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      zIndex: 2  // Canvas поверх изображения
+                    }}
+                  />
 
-              {analysisResult && (
-                <Card variant="outlined" sx={{ mt: 2 }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <Box>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Нейросеть обнаружила:
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                          {analysisResult.detected_types.map((type, index) => (
-                            <Chip 
-                              key={index}
-                              label={`${getTypeLabel(type)} (${analysisResult.defects.filter(d => d.type === type).length})`}
-                              color={type === analysisResult.dominant_type ? "primary" : "default"}
-                              size="small"
-                            />
-                          ))}
-                        </Box>
-                      </Box>
-                      
-                      <Box>
-                        <Typography variant="subtitle2">
-                          Основной тип проблемы: <strong>{analysisResult.dominant_type ? getTypeLabel(analysisResult.dominant_type) : 'Не определено'}</strong>
-                        </Typography>
-                        {analysisResult.confidence && (
-                          <Typography variant="body2" color="text.secondary">
-                            Уверенность: {(analysisResult.confidence * 100).toFixed(1)}%
+                  <img 
+                    ref={imageRef}
+                    src={photo} 
+                    alt="Preview" 
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: 400,
+                      borderRadius: '8px',
+                      display: 'block',
+                      position: 'relative',
+                      zIndex: 1
+                    }} 
+                  />
+                </Box>
+
+                {analysisResult && (
+                  <Card variant="outlined" sx={{ mt: 2 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Нейросеть обнаружила:
                           </Typography>
-                        )}
-                      </Box>
-                      
-                      <Box>
-                        <Divider sx={{ my: 1 }} />
-                        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mt: 2 }}>
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 1,
-                              color: !useAiSuggestion ? 'primary.main' : 'text.secondary'
-                            }}>
-                              <TouchAppIcon />
-                              <Typography variant="body2" fontWeight={!useAiSuggestion ? 'bold' : 'normal'}>
-                                Указать тип проблемы вручную
-                              </Typography>
-                            </Box>
-                            
-                            <Switch
-                              checked={useAiSuggestion}
-                              onChange={(e) => {
-                                if (e.target.checked && analysisResult?.dominant_type) {
-                                  setProblemType(analysisResult.dominant_type);
-                                }
-                                setUseAiSuggestion(e.target.checked);
-                              }}
-                              disabled={!analysisResult?.dominant_type}
-                              color="primary"
-                            />
-                            
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 1,
-                              color: useAiSuggestion ? 'primary.main' : 'text.secondary'
-                            }}>
-                              <AutoAwesomeIcon />
-                              <Typography variant="body2" fontWeight={useAiSuggestion ? 'bold' : 'normal'}>
-                                Использовать результат ИИ
-                              </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                            {analysisResult.detected_types.map((type, index) => (
+                              <Chip 
+                                key={index}
+                                label={`${getTypeLabel(type)} (${analysisResult.defects.filter(d => d.type === type).length})`}
+                                color={type === analysisResult.dominant_type ? "primary" : "default"}
+                                size="small"
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                        
+                        <Box>
+                          <Typography variant="subtitle2">
+                            Основной тип проблемы: <strong>{analysisResult.dominant_type ? getTypeLabel(analysisResult.dominant_type) : 'Не определено'}</strong>
+                          </Typography>
+                          {analysisResult.confidence && (
+                            <Typography variant="body2" color="text.secondary">
+                              Уверенность: {(analysisResult.confidence * 100).toFixed(1)}%
+                            </Typography>
+                          )}
+                        </Box>
+                        
+                        <Box>
+                          <Divider sx={{ my: 1 }} />
+                          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mt: 2 }}>
+                              <Box sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 1,
+                                color: !useAiSuggestion ? 'primary.main' : 'text.secondary'
+                              }}>
+                                <TouchAppIcon />
+                                <Typography variant="body2" fontWeight={!useAiSuggestion ? 'bold' : 'normal'}>
+                                  Указать тип проблемы вручную
+                                </Typography>
+                              </Box>
+                              
+                              <Switch
+                                checked={useAiSuggestion}
+                                onChange={(e) => {
+                                  if (e.target.checked && analysisResult?.dominant_type) {
+                                    setProblemType(analysisResult.dominant_type);
+                                  }
+                                  setUseAiSuggestion(e.target.checked);
+                                }}
+                                disabled={!analysisResult?.dominant_type}
+                                color="primary"
+                              />
+                              
+                              <Box sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 1,
+                                color: useAiSuggestion ? 'primary.main' : 'text.secondary'
+                              }}>
+                                <AutoAwesomeIcon />
+                                <Typography variant="body2" fontWeight={useAiSuggestion ? 'bold' : 'normal'}>
+                                  Использовать результат ИИ
+                                </Typography>
+                              </Box>
                             </Box>
                           </Box>
                         </Box>
                       </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              )}
-            </Box>
-          )}
-        </Box>
+                    </CardContent>
+                  </Card>
+                )}
+              </Box>
+            )}
+          </Box>
 
-        <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: 3 }} />
 
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Тип проблемы</InputLabel>
-          <Select
-            value={problemType}
-            label="Тип проблемы"
-            onChange={(e) => {
-              setProblemType(e.target.value as ProblemType);
-              setUseAiSuggestion(false); // При ручном выборе снимаем флаг ИИ
-            }}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Тип проблемы</InputLabel>
+            <Select
+              value={problemType}
+              label="Тип проблемы"
+              onChange={(e) => {
+                setProblemType(e.target.value as ProblemType);
+                setUseAiSuggestion(false); // При ручном выборе снимаем флаг ИИ
+              }}
+              disabled={analyzing}
+            >
+              <MenuItem value="long_crack">Продольная трещина</MenuItem>
+              <MenuItem value="transverse_crack">Поперечная трещина</MenuItem>
+              <MenuItem value="alligator_crack">Трещина "аллигатор"</MenuItem>
+              <MenuItem value="pothole">Выбоина/яма</MenuItem>
+              <MenuItem value="manhole">Отсутствует люк</MenuItem>
+              <MenuItem value="other">Другое</MenuItem>
+            </Select>
+            
+            {useAiSuggestion && analysisResult?.dominant_type && (
+              <Typography variant="caption" color="primary" sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <AutoAwesomeIcon fontSize="small" /> Распознано нейросетью
+              </Typography>
+            )}
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Адрес или описание места" 
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            sx={{ mb: 2 }}
+            placeholder="Например: ул. Ленина, 15, перед пешеходным переходом"
+            required
             disabled={analyzing}
-          >
-            <MenuItem value="long_crack">Продольная трещина</MenuItem>
-            <MenuItem value="transverse_crack">Поперечная трещина</MenuItem>
-            <MenuItem value="alligator_crack">Трещина "аллигатор"</MenuItem>
-            <MenuItem value="pothole">Выбоина/яма</MenuItem>
-            <MenuItem value="manhole">Отсутствует люк</MenuItem>
-            <MenuItem value="other">Другое</MenuItem>
-          </Select>
-          
-          {useAiSuggestion && analysisResult?.dominant_type && (
-            <Typography variant="caption" color="primary" sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AutoAwesomeIcon fontSize="small" /> Распознано нейросетью
-            </Typography>
+          />
+
+          <TextField
+            fullWidth
+            label="Дополнительное описание проблемы"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            multiline
+            rows={3}
+            sx={{ mb: 3 }}
+            placeholder="Опишите проблему подробнее..."
+            disabled={analyzing}
+          />
+
+          {isEditing && onCancel && (
+            <Button
+              variant="outlined"
+              onClick={onCancel}
+              sx={{ mr: 2 }}
+            >
+              Отмена
+            </Button>
           )}
-        </FormControl>
 
-        <TextField
-          fullWidth
-          label="Адрес или описание места" 
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          sx={{ mb: 2 }}
-          placeholder="Например: ул. Ленина, 15, перед пешеходным переходом"
-          required
-          disabled={analyzing}
-        />
-
-        <TextField
-          fullWidth
-          label="Дополнительное описание проблемы"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          multiline
-          rows={3}
-          sx={{ mb: 3 }}
-          placeholder="Опишите проблему подробнее..."
-          disabled={analyzing}
-        />
-
-        {isEditing && onCancel && (
           <Button
-            variant="outlined"
-            onClick={onCancel}
-            sx={{ mr: 2 }}
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={!address.trim() || loading}
+            type="submit"
           >
-            Отмена
+            {loading ? <CircularProgress size={24} /> : (isEditing ? 'Сохранить' : 'Отправить')}
           </Button>
-        )}
-
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={!address.trim() || loading}
-          type="submit"
-        >
-          {loading ? <CircularProgress size={24} /> : (isEditing ? 'Сохранить' : 'Отправить')}
-        </Button>
-      </Paper>
+        </Paper>
     </Box>
+    </>
   );
 };
 
