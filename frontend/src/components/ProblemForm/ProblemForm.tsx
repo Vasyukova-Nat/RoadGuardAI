@@ -483,7 +483,7 @@ const ProblemForm: React.FC<ProblemFormProps> = ({
                 {...params}
                 fullWidth
                 label="Адрес или описание места"
-                placeholder="Например: ул. Ленина, 15"
+                placeholder="Например: Авиамоторная улица, 12 (или улица Лапина, 1)"
                 required
                 disabled={analyzing}
                 sx={{ mb: 2 }}
