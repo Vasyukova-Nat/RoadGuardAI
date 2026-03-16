@@ -93,7 +93,31 @@ function ProblemList() {
     return problem.is_from_inspector;
   };
 
+  const problemsCache = new Map(); // Кэш в памяти // кэширование
+
   const loadProblems = async (): Promise<void> => {
+    // Кэш в памяти (можно вынести в useState или useRef)
+    const cacheKey = JSON.stringify({
+      page: filters.page,
+      limit: filters.limit,
+      sort_by: filters.sort_by,
+      sort_order: filters.sort_order,
+      status: filters.status,
+      type: filters.type,
+      inspector: filters.is_from_inspector,
+      search: filters.search
+    });
+
+    // Проверяем кэш
+    const cached = problemsCache.get(cacheKey);
+    if (cached) {
+      setProblems(cached.items);
+      setTotalItems(cached.total);
+      setTotalPages(cached.total_pages);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     try {
       const params: any = {
@@ -111,7 +135,13 @@ function ProblemList() {
       if (filters.search) params.search = filters.search;
       
       const response = await problemsAPI.getProblems(params);
-      
+
+      problemsCache.set(cacheKey, { // сохр. в кэш
+        items: response.data.items,
+        total: response.data.total,
+        total_pages: response.data.total_pages
+      });
+
       setProblems(response.data.items);
       setTotalItems(response.data.total);
       setTotalPages(response.data.total_pages);
