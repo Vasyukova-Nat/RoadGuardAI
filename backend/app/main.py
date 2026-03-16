@@ -6,6 +6,7 @@ from sqlalchemy import text
 from .database import get_db, engine
 from .models import models
 from .api import auth, admin, ml, problems
+from .services.yandex_maps import YandexMapsService
 
 try:
     models.Base.metadata.create_all(bind=engine)
@@ -51,6 +52,12 @@ def health_check(db: Session = Depends(get_db)):
         }
     except Exception as e:
         return {"status": "unhealthy", "database": "error", "error": str(e)}
+
+@app.get("/api/address-suggest")
+async def address_suggest(query: str):
+    """Подсказки адресов от Яндекс.Карт"""
+    service = YandexMapsService()
+    return await service.suggest_address(query)
 
 @app.get("/sitemap.xml")
 async def get_sitemap():

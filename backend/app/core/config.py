@@ -11,3 +11,5 @@ MODEL_PATH = os.getenv("MODEL_PATH")
 BASE_DIR = Path("/app")
 if not MODEL_PATH:
     MODEL_PATH = str(BASE_DIR / "ml_module" / "roadguard_models" / "v2" / "weights" / "best.pt")
+
+YANDEX_MAPS_API_KEY = os.getenv("YANDEX_MAPS_API_KEY", "")

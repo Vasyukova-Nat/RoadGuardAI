@@ -16,12 +16,13 @@ import {
   Card,
   CardContent,
   Divider,
-  Switch
+  Switch,
+  Autocomplete
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
-import { problemsAPI, ProblemType, DefectDetection, ImageAnalysisResponse, Problem } from '../../services/types';
+import api, { problemsAPI, ProblemType, DefectDetection, ImageAnalysisResponse, Problem } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 import SEO from '../SEO/SEO';
 
@@ -233,6 +234,38 @@ const ProblemForm: React.FC<ProblemFormProps> = ({
     return labels[type];
   };
 
+  interface AddressSuggestion {
+    address: string;
+    display: string;
+    subtitle?: string;
+    lat?: number;
+    lon?: number;
+  }
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]); // Для Яндекс.Карт
+  const [searchLoading, setSearchLoading] = useState(false);
+  let searchTimeout: NodeJS.Timeout;
+
+  const searchAddress = (query: string) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await api.get(`/api/address-suggest?query=${query}`);
+        setAddressSuggestions(response.data);
+      } catch (error) {
+        console.error('Ошибка поиска адреса:', error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  };
+
   return (
     <> 
       <SEO 
@@ -419,15 +452,52 @@ const ProblemForm: React.FC<ProblemFormProps> = ({
             )}
           </FormControl>
 
-          <TextField
-            fullWidth
-            label="Адрес или описание места" 
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            sx={{ mb: 2 }}
-            placeholder="Например: ул. Ленина, 15, перед пешеходным переходом"
-            required
-            disabled={analyzing}
+          <Autocomplete
+            freeSolo
+            options={addressSuggestions}
+            loading={searchLoading}
+            getOptionLabel={(option) => {
+              if (typeof option === 'string') return option;
+              return option.display || option.address || '';
+            }}
+            onInputChange={(_, value) => searchAddress(value)}
+            onChange={(_, value) => {
+              if (value && typeof value !== 'string') {
+                setAddress(value.address);  // Вставляем полный адрес
+              }
+            }}
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box>
+                  <Typography variant="body1">{option.display}</Typography>
+                  {option.subtitle && (
+                    <Typography variant="caption" color="text.secondary">
+                      {option.subtitle}
+                    </Typography>
+                  )}
+                </Box>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                fullWidth
+                label="Адрес или описание места"
+                placeholder="Например: ул. Ленина, 15"
+                required
+                disabled={analyzing}
+                sx={{ mb: 2 }}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {searchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
 
           <TextField
