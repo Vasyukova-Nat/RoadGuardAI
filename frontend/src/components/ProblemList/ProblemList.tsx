@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Paper,
   Typography,
@@ -17,12 +17,8 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
-  IconButton,
-  Dialog,
-  DialogContent,
-  DialogTitle
+  IconButton
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
 import { problemsAPI, Problem, ProblemType, ProblemStatus } from '../../services/types';
 import { useAuthStore } from '../../store/authStore';
 import ProblemFilters, { FilterParams } from './ProblemFilters';
@@ -30,8 +26,12 @@ import { useSearchParams } from 'react-router-dom';
 import { Pagination, Stack } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ProblemForm from '../ProblemForm/ProblemForm';
 import api from '../../services/types';
+import SEO from '../SEO/SEO';
+import { Helmet } from 'react-helmet-async';
+
+const EditProblemDialog = lazy(() => import('./EditProblemDialog')); // Lazy loading для модальных окон
+const ImageViewDialog = lazy(() => import('./ImageViewDialog'));
 
 function ProblemList() {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -93,7 +93,31 @@ function ProblemList() {
     return problem.is_from_inspector;
   };
 
+  const problemsCache = new Map(); // Кэш в памяти // кэширование
+
   const loadProblems = async (): Promise<void> => {
+    // Кэш в памяти (можно вынести в useState или useRef)
+    const cacheKey = JSON.stringify({
+      page: filters.page,
+      limit: filters.limit,
+      sort_by: filters.sort_by,
+      sort_order: filters.sort_order,
+      status: filters.status,
+      type: filters.type,
+      inspector: filters.is_from_inspector,
+      search: filters.search
+    });
+
+    // Проверяем кэш
+    const cached = problemsCache.get(cacheKey);
+    if (cached) {
+      setProblems(cached.items);
+      setTotalItems(cached.total);
+      setTotalPages(cached.total_pages);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     try {
       const params: any = {
@@ -111,7 +135,13 @@ function ProblemList() {
       if (filters.search) params.search = filters.search;
       
       const response = await problemsAPI.getProblems(params);
-      
+
+      problemsCache.set(cacheKey, { // сохр. в кэш
+        items: response.data.items,
+        total: response.data.total,
+        total_pages: response.data.total_pages
+      });
+
       setProblems(response.data.items);
       setTotalItems(response.data.total);
       setTotalPages(response.data.total_pages);
@@ -253,155 +283,190 @@ function ProblemList() {
     );
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Дорожные проблемы",
+    "description": "Список зарегистрированных проблем на дорогах",
+    "numberOfItems": problems.length,
+    "itemListElement": problems.map((problem, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Service",
+        "name": `Проблема на ${problem.address}`,
+        "description": problem.description || "Повреждение дорожного покрытия",
+        "address": problem.address,
+        "serviceType": problem.type,
+        "datePosted": problem.created_at
+      }
+    }))
+  };
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Список дорожных проблем
-      </Typography>
-      
-      <ProblemFilters
-        filters={filters}
-        onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
-        onClearFilters={clearFilters}
+    <>
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      </Helmet>
+
+      <SEO 
+        title="Список проблем" 
+        description="Список зарегистрированных проблем на дорогах" 
       />
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Список дорожных проблем
+        </Typography>
+        
+        <ProblemFilters
+          filters={filters}
+          onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
+          onClearFilters={clearFilters}
+        />
 
-      <Paper elevation={3}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell><strong>ID</strong></TableCell>
-                <TableCell><strong>От инспектора?</strong></TableCell>
-                <TableCell><strong>Тип</strong></TableCell>
-                <TableCell><strong>Адрес</strong></TableCell>
-                <TableCell><strong>Фото</strong></TableCell>
-                {currentUser?.role === 'admin' && <TableCell><strong>ID отправителя</strong></TableCell>}
-                <TableCell><strong>Описание</strong></TableCell>
-                <TableCell><strong>Статус</strong></TableCell>
-                <TableCell><strong>Дата создания</strong></TableCell>
-                {canChangeStatus && <TableCell><strong>Действие</strong></TableCell>}
-                {canDeleteProblem && <TableCell><strong>Изменить</strong></TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {problems.map((problem) => (
-                <TableRow key={problem.id}>
-                  <TableCell>#{problem.id}</TableCell>
-                  <TableCell>
-                    {isFromInspector(problem) ? (
-                      <Chip 
-                        label="+" 
-                        color="success" 
-                        size="small" 
-                      />
-                    ) : (
-                      <Chip 
-                        label="-" 
-                        color="default" 
-                        size="small" 
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>{getTypeText(problem.type)}</TableCell>
-                  <TableCell>{problem.address}</TableCell>
-                  <TableCell>
-                    {(problem.images_count || 0) > 0 ? (
-                      <Button 
-                        size="small" 
-                        variant="outlined"
-                        onClick={async () => {
-                          try {
-                            const response = await api.get(`/problems/${problem.id}/images`);
-                            if (response.data.length > 0) {
-                              setSelectedImage(response.data[0].url);  
-                              setImageOpen(true);                       // откр. модальное окно
-                            }
-                          } catch (error) {
-                            console.error('Ошибка загрузки фото:', error);
-                          }
-                        }}
-                      >
-                        фото
-                      </Button>
-                    ) : null}
-                  </TableCell>
-
-                  {currentUser?.role === 'admin' && (
-                    <TableCell>{problem.reporter_id}</TableCell>
-                  )}
-                  <TableCell>{problem.description || '-'}</TableCell>
-                  <TableCell> 
-                    <Chip 
-                      label={getStatusText(problem.status)}  
-                      color={getStatusColor(problem.status)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>{formatDate(problem.created_at)}</TableCell>
-
-                  {canChangeStatus && (
+        <Paper elevation={3}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>ID</strong></TableCell>
+                  <TableCell><strong>От инспектора?</strong></TableCell>
+                  <TableCell><strong>Тип</strong></TableCell>
+                  <TableCell><strong>Адрес</strong></TableCell>
+                  <TableCell><strong>Фото</strong></TableCell>
+                  {currentUser?.role === 'admin' && <TableCell><strong>ID отправителя</strong></TableCell>}
+                  <TableCell><strong>Описание</strong></TableCell>
+                  <TableCell><strong>Статус</strong></TableCell>
+                  <TableCell><strong>Дата создания</strong></TableCell>
+                  {canChangeStatus && <TableCell><strong>Действие</strong></TableCell>}
+                  {canDeleteProblem && <TableCell><strong>Изменить</strong></TableCell>}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {problems.map((problem) => (
+                  <TableRow key={problem.id}>
+                    <TableCell>#{problem.id}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {problem.status === 'new' && (
-                          <>
-                            <Button 
-                              color="warning" 
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleStatusChange(problem.id, 'in_progress')}
-                            >
-                              В работу
-                            </Button>
-                            <Button 
+                      {isFromInspector(problem) ? (
+                        <Chip label="+" color="success" size="small" />
+                      ) : (
+                        <Chip label="-" color="default" size="small" />
+                      )}
+                    </TableCell>
+                    <TableCell>{getTypeText(problem.type)}</TableCell>
+                    <TableCell>{problem.address}</TableCell>
+                    <TableCell>
+                      {(problem.images_count || 0) > 0 ? (
+                        <Button 
+                          size="small" 
+                          variant="outlined"
+                          onClick={async () => {
+                            try {
+                              const response = await api.get(`/problems/${problem.id}/images`);
+                              if (response.data.length > 0) {
+                                setSelectedImage(response.data[0].url);  
+                                setImageOpen(true); // откр. модальное окно
+                              }
+                            } catch (error) {
+                              console.error('Ошибка загрузки фото:', error);
+                            }
+                          }}
+                        >
+                          фото
+                        </Button>
+                      ) : null}
+                    </TableCell>
+
+                    {currentUser?.role === 'admin' && (
+                      <TableCell>{problem.reporter_id}</TableCell>
+                    )}
+                    <TableCell>{problem.description || '-'}</TableCell>
+                    <TableCell> 
+                      <Chip 
+                        label={getStatusText(problem.status)}  
+                        color={getStatusColor(problem.status)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>{formatDate(problem.created_at)}</TableCell>
+
+                    {canChangeStatus && (
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {problem.status === 'new' && (
+                            <>
+                              <Button 
+                                color="warning" 
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleStatusChange(problem.id, 'in_progress')}
+                              >
+                                В работу
+                              </Button>
+                              <Button 
+                                  color="primary" 
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => handleStatusChange(problem.id, 'closed')}
+                                >
+                                  Закрыть
+                              </Button>
+                            </>
+                          )}
+                          
+                          {problem.status === 'in_progress' && (
+                            <>
+                              <Button 
+                                color="success" 
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleStatusChange(problem.id, 'resolved')}
+                              >
+                                Решена
+                              </Button>
+                              <Button 
                                 color="primary" 
                                 size="small"
                                 variant="outlined"
                                 onClick={() => handleStatusChange(problem.id, 'closed')}
                               >
                                 Закрыть
-                            </Button>
-                          </>
-                        )}
-                        
-                        {problem.status === 'in_progress' && (
-                          <>
-                            <Button 
-                              color="success" 
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleStatusChange(problem.id, 'resolved')}
-                            >
-                              Решена
-                            </Button>
-                            <Button 
-                              color="primary" 
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleStatusChange(problem.id, 'closed')}
-                            >
-                              Закрыть
-                            </Button>
-                            <Button 
-                              color="secondary" 
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleStatusChange(problem.id, 'new')}
-                            >
-                              Вернуть в новые
-                            </Button>
-                          </>
-                        )}
-                        
-                        {problem.status === 'resolved' && (
-                          <>
-                            <Button 
-                              color="primary" 
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleStatusChange(problem.id, 'closed')}
-                            >
-                              Закрыть
-                            </Button>
+                              </Button>
+                              <Button 
+                                color="secondary" 
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleStatusChange(problem.id, 'new')}
+                              >
+                                Вернуть в новые
+                              </Button>
+                            </>
+                          )}
+                          
+                          {problem.status === 'resolved' && (
+                            <>
+                              <Button 
+                                color="primary" 
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleStatusChange(problem.id, 'closed')}
+                              >
+                                Закрыть
+                              </Button>
+                              <Button 
+                                color="warning" 
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleStatusChange(problem.id, 'in_progress')}
+                              >
+                                Вернуть в работу
+                              </Button>
+                            </>
+                          )}
+                          
+                          {problem.status === 'closed' && (
                             <Button 
                               color="warning" 
                               size="small"
@@ -410,133 +475,96 @@ function ProblemList() {
                             >
                               Вернуть в работу
                             </Button>
-                          </>
-                        )}
-                        
-                        {problem.status === 'closed' && (
-                          <Button 
-                            color="warning" 
+                          )}
+                        </Box>
+                      </TableCell>
+                    )}
+
+                    {canDeleteProblem && (
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton 
+                            color="primary" 
                             size="small"
-                            variant="outlined"
-                            onClick={() => handleStatusChange(problem.id, 'in_progress')}
+                            onClick={() => handleEditClick(problem)}
+                            title="Редактировать"
                           >
-                            Вернуть в работу
-                          </Button>
-                        )}
-                      </Box>
-                    </TableCell>
-                  )}
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            color="error" 
+                            size="small"
+                            onClick={() => handleDelete(problem.id)}
+                            title="Удалить"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
 
-                  {canDeleteProblem && (
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton 
-                          color="primary" 
-                          size="small"
-                          onClick={() => handleEditClick(problem)}
-                          title="Редактировать"
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton 
-                          color="error" 
-                          size="small"
-                          onClick={() => handleDelete(problem.id)}
-                          title="Удалить"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-
-      <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          Всего проблем: {problems.length}
-        </Typography>
-      </Box>
-
-      {totalPages > 0 && (
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            Всего проблем: {totalItems}
+            Всего проблем: {problems.length}
           </Typography>
-          
-          <Stack direction="row" spacing={2} alignItems="center">
-            <FormControl size="small" sx={{ minWidth: 80 }}>
-              <Select
-                value={filters.limit.toString()}
-                onChange={handleLimitChange}
-              >
-                <MenuItem value={3}>3</MenuItem>
-                <MenuItem value={5}>5</MenuItem>
-                <MenuItem value={10}>10</MenuItem>
-                <MenuItem value={20}>20</MenuItem>
-                <MenuItem value={50}>50</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <Pagination
-              count={totalPages}
-              page={filters.page}
-              onChange={handlePageChange}
-              color="primary"
-              showFirstButton
-              showLastButton
-            />
-          </Stack>
         </Box>
-      )}
 
-      <Dialog 
-        open={editDialogOpen} 
-        onClose={handleEditClose}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogContent>
-          {editingProblem && (
-            <ProblemForm 
-              initialData={editingProblem}
-              onSuccess={handleEditSuccess}
-              onCancel={handleEditClose}
-              isEditing={true}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog 
-        open={imageOpen} 
-        onClose={() => setImageOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Фото проблемы
-          <IconButton onClick={() => setImageOpen(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedImage && (
-            <Box sx={{ textAlign: 'center' }}>
-              <img 
-                src={selectedImage} 
-                alt="Проблема" 
-                style={{ maxWidth: '100%', maxHeight: '70vh' }} 
+        {totalPages > 0 && (
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Всего проблем: {totalItems}
+            </Typography>
+            
+            <Stack direction="row" spacing={2} alignItems="center">
+              <FormControl size="small" sx={{ minWidth: 80 }}>
+                <Select
+                  value={filters.limit.toString()}
+                  onChange={handleLimitChange}
+                >
+                  <MenuItem value={3}>3</MenuItem>
+                  <MenuItem value={5}>5</MenuItem>
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={20}>20</MenuItem>
+                  <MenuItem value={50}>50</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <Pagination
+                count={totalPages}
+                page={filters.page}
+                onChange={handlePageChange}
+                color="primary"
+                showFirstButton
+                showLastButton
               />
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
-    </Box>
+            </Stack>
+          </Box>
+        )}
+
+        <Suspense fallback={<div>Загрузка...</div>}>
+          <EditProblemDialog 
+            open={editDialogOpen}
+            problem={editingProblem}
+            onClose={handleEditClose}
+            onSuccess={handleEditSuccess}
+          />
+        </Suspense>
+
+        <Suspense fallback={<div>Загрузка...</div>}>
+          <ImageViewDialog 
+            open={imageOpen}
+            imageUrl={selectedImage}
+            onClose={() => setImageOpen(false)}
+          />
+        </Suspense>
+      </Box>
+    </>
   );
 }
 

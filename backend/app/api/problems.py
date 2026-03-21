@@ -129,8 +129,13 @@ def delete_problem(
     """Удалить проблему (только admin или создатель)"""
     problem_service = ProblemService(db)
     problem = problem_service.get_problem(problem_id)
+    
     if not problem:
-        raise HTTPException(status_code=404, detail="Problem not found")
+        # Возвращаем 410 вместо 404
+        raise HTTPException(
+            status_code=410, 
+            detail="Problem was already deleted"
+        )
     
     if current_user.role != UserRole.ADMIN and problem.reporter_id != current_user.id:
         raise HTTPException(
@@ -142,5 +147,9 @@ def delete_problem(
     image_service.delete_all_problem_images(problem_id)
 
     if not problem_service.delete_problem(problem_id):
-        raise HTTPException(status_code=404, detail="Problem not found")
+        raise HTTPException(
+            status_code=410, 
+            detail="Problem was already deleted"
+        )
+    
     return {"message": "Проблема и все связанные с ней фото успешно удалены"}

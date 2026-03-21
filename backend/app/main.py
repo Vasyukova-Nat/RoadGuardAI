@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from .database import get_db, engine
 from .models import models
 from .api import auth, admin, ml, problems
+from .services.yandex_maps import YandexMapsService
 
 try:
     models.Base.metadata.create_all(bind=engine)
@@ -50,3 +52,52 @@ def health_check(db: Session = Depends(get_db)):
         }
     except Exception as e:
         return {"status": "unhealthy", "database": "error", "error": str(e)}
+
+@app.get("/api/address-suggest")
+async def address_suggest(query: str):
+    """Подсказки адресов от Яндекс.Карт"""
+    service = YandexMapsService()
+    return await service.suggest_address(query)
+
+@app.get("/sitemap.xml")
+async def get_sitemap():
+    """Генерирует карту сайта для поисковиков"""
+    base_url = "https://roadguard.ai"
+    
+    # Статические страницы
+    pages = [
+        {"loc": f"{base_url}/", "priority": "1.0"},
+        {"loc": f"{base_url}/problems", "priority": "0.8"},
+        {"loc": f"{base_url}/report", "priority": "0.6"},
+    ]
+    
+    # Динамических страниц (для каждой конкретной проблемы) пока нет.
+    
+    sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for page in pages:
+        sitemap += f"""
+            <url>
+                <loc>{page['loc']}</loc>
+                <priority>{page['priority']}</priority>
+            </url>"""
+    
+    sitemap += '\n</urlset>'
+    
+    return Response(content=sitemap, media_type="application/xml")
+
+@app.get("/robots.txt")
+async def get_robots():
+    """Инструкции для поисковых роботов"""
+    robots_txt = """User-agent: *
+        Allow: /
+        Disallow: /login
+        Disallow: /register
+        Disallow: /profile
+        Disallow: /admin
+        Disallow: /report
+
+        Sitemap: https://roadguard.ai/sitemap.xml
+        """
+    return Response(content=robots_txt, media_type="text/plain")
