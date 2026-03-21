@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, field_validator
 from typing import Optional, List
 from datetime import datetime
 from ..models.models import ProblemStatus, ProblemType, UserRole
@@ -7,7 +7,13 @@ class ProblemCreate(BaseModel):
     address: str
     description: Optional[str] = None
     type: ProblemType = ProblemType.POTHOLE
-
+    
+    @field_validator('address')
+    def address_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Адрес не может быть пустым')
+        return v.strip()
+    
 class ProblemResponse(BaseModel):
     id: int
     type: ProblemType
