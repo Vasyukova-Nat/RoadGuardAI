@@ -14,5 +14,13 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
     css: true,
-  },
+    coverage: {
+      thresholds: {
+        statements: 35,    // мин. % покрытия строк кода
+        branches: 35,      // мин. % проверки веток if/else/switch 
+        functions: 35,     // мин. % вызывания ф-ий
+        lines: 35
+      }
+    }
+  }
 })
