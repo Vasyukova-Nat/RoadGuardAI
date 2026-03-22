@@ -22,7 +22,9 @@ from app.main import app
 from app.core.security import get_password_hash
 from app.models.models import User, UserRole
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db" # тестовая БД
+from dotenv import load_dotenv
+load_dotenv('.env.test')
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db") # тестовая БД
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
