@@ -1,6 +1,10 @@
 import pytest
 import sys
 import os
+from unittest.mock import MagicMock
+from dotenv import load_dotenv
+
+load_dotenv('.env.test')
 
 class MockMagic: # мок для python-magic для избежания ошибок библиотек
     def from_buffer(self, *args, **kwargs):
@@ -10,6 +14,15 @@ class MockMagic: # мок для python-magic для избежания ошиб
         return self
 
 sys.modules['magic'] = MockMagic() # подменяем модуль magic до импорта
+
+# Мок для MinIO клиента
+mock_minio = MagicMock()
+mock_minio.upload_file.return_value = "problems/1/test.jpg"
+mock_minio.get_presigned_url.return_value = "http://localhost:9000/test.jpg"
+mock_minio.delete_file.return_value = True
+
+sys.modules['app.core.minio_client'] = MagicMock()
+sys.modules['app.core.minio_client'].minio_client = mock_minio
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
